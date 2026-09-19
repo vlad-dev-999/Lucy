@@ -16,6 +16,7 @@ Stage 1: workbook inspection, validation, review persistence, and baseline statu
 - Browser preview: IMPLEMENTED
 - Import review persistence: IMPLEMENTED
 - Immutable baseline status transition: IMPLEMENTED
+- Vocabulary review workflow: IMPLEMENTED — runtime verified through the API and desktop review queue
 - Source workbook byte storage: PLANNED
 - Canonical vocabulary: PLANNED
 - Department workspace: SCAFFOLD
@@ -36,7 +37,7 @@ See `replit.md`. The main UI is in `artifacts/hospital-mmf`; the API route is `a
 
 ## Database State
 
-The `mmf_imports` table is pushed to the development PostgreSQL database. The API creates a fixture review record on first overview/history access if it is absent.
+The `mmf_imports`, `canonical_items`, and `vocabulary_reviews` tables are pushed to the development PostgreSQL database. The API returns the review queue successfully after schema synchronization.
 
 ## Completed Work
 
@@ -54,12 +55,12 @@ The `mmf_imports` table is pushed to the development PostgreSQL database. The AP
 - Uploaded workbook bytes are not yet persisted to App Storage.
 - Preview rows are stored, not the complete source row set.
 - Demo identity and authorization are not production-ready.
-- Commit status is the first governance transition; canonical vocabulary decisions are not yet implemented.
+- Canonical vocabulary UI is not yet implemented; the vocabulary review workflow is available for review decisions.
 - Export is not implemented.
 
 ## Tests
 
-TypeScript checks pass for shared libraries, API server, and web artifact. Runtime verification is still pending after managed workflows are restarted.
+Runtime verification completed after managed workflows were restarted: `GET /api/healthz` returned 200, `GET /api/vocabulary-reviews?limit=20` returned 200 with review records, and `/review-queue` rendered successfully. Browser console contained only normal Vite/React development messages.
 
 ## Business Rules
 
@@ -75,11 +76,11 @@ TypeScript checks pass for shared libraries, API server, and web artifact. Runti
 - `/imports` guided import review and history
 - `/imports/:id` metadata, findings, preview, and commit control
 - `/departments` detected destinations
-- `/review-queue` identifier findings
+- `/review-queue` vocabulary review workflow
 
 ## Next Stage
 
-Add protected App Storage source-object persistence, full legacy-row storage with source lineage, canonical item creation, and human vocabulary review decisions.
+Add protected App Storage source-object persistence, full legacy-row storage with source lineage, and Canonical Vocabulary UI.
 
 ## Do Not Break
 
@@ -87,4 +88,4 @@ The supplied workbook remains the authoritative legacy contract. PVMS/NIV is not
 
 ## Git Commit
 
-Not recorded in this environment.
+`feat: implement vocabulary review workflow`
