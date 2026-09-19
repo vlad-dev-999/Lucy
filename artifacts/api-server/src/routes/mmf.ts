@@ -88,7 +88,7 @@ export const DEPARTMENT_NAMES = [
   "VASCULAR SURGERY-MS",
   "VETERANS-MS",
   "X-RAY-MS",
-] as const;
+];
 
 const fixturePreviewRows = [
   {
@@ -145,7 +145,7 @@ const fixturePreviewRows = [
     currentDglp: 1,
     currentEchs: 0,
   },
-] as const;
+];
 
 const fixtureIssues = [
   {

@@ -1,0 +1,67 @@
+Continue the existing MMF project from the current Git state.
+
+The previous agent has ALREADY IMPLEMENTED the Stage 2 data-foundation changes:
+
+- full source-row payload is now wired through the import request
+- schema/provenance fields are added
+- lineage review metadata is added
+- deterministic review detection has replaced conflict-only persistence
+
+It stopped only because the repository has no installed node_modules and API type generation could not run.
+
+DO NOT REDISCOVER THE PROJECT.
+DO NOT READ THE ENTIRE DOCUMENTATION SET.
+DO NOT REDESIGN ANYTHING.
+DO NOT REBUILD THE CHANGES ABOVE.
+
+YOUR ONLY JOB:
+
+1. Inspect git status and the existing package manager/lockfile.
+2. Install the EXISTING pnpm workspace dependencies using the existing lockfile.
+   Do not change package versions or dependency strategy.
+3. Regenerate the API types/code generated from the existing contract.
+4. Run the focused typecheck/tests/migration checks relevant to the Stage 2 data-foundation changes.
+5. Fix compilation, generated-type, persistence, or test failures caused by the changes already made.
+6. Verify the existing Stage 1 import path still works.
+7. Do not build Stage 2 UI.
+
+The Stage 2 data-foundation scope is:
+
+- persistent Legacy Items
+- full imported source-row persistence
+- specification/PVMS/NIV provenance
+- Canonical Items
+- Legacy → Canonical lineage
+- lineage review metadata
+- deterministic review records for:
+  EXACT_DUPLICATE
+  PROBABLE_DUPLICATE
+  IDENTIFIER_CONFLICT
+  MISSING_IDENTIFIER
+  OBSOLETE_CANDIDATE
+  NEW_ITEM
+
+Business invariants:
+- DGLP and ECHS remain separate.
+- PVMS/NIV are identifiers, not budget heads.
+- Canonical Item ID is independent of PVMS/NIV.
+- Legacy records are never silently deleted or merged.
+- Human review is required for clinical equivalence.
+
+IMPORTANT:
+The previous agent has already done the code changes. Treat the current code as authoritative.
+Only fix what is actually broken.
+
+After verification:
+
+1. Update the current project-state baton with the actual status.
+2. Record tests/typecheck/build results.
+3. Record remaining Stage 2 work.
+4. Record the next concrete ticket.
+5. Commit:
+
+feat: complete stage 2 data foundation
+
+Do not spend the run on documentation or architectural analysis.
+
+START WITH INSTALLING THE EXISTING DEPENDENCIES AND REGENERATING THE API TYPES.

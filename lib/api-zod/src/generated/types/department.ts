@@ -10,4 +10,5 @@ export interface Department {
   id: string;
   name: string;
   itemCount: number;
+  sourceColumnStart: number;
 }
