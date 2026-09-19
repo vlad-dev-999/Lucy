@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Hospital MMF Command Centre"
+description = "A governed desktop workspace for validating the hospital's legacy MMF workbook, reviewing data quality, and committing an immutable import baseline for the next MMF cycle."
+version = "1.0.0"
+id = "artifacts/hospital-mmf"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 18533
+
+[services.development]
+run = "pnpm --filter @workspace/hospital-mmf run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/hospital-mmf", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/hospital-mmf/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "18533"
+BASE_PATH = "/"

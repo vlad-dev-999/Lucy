@@ -10,6 +10,12 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: overview
+    description: Command centre summary
+  - name: imports
+    description: Legacy workbook imports and immutable baselines
+  - name: departments
+    description: Department vocabulary discovered from legacy workbooks
 paths:
   /healthz:
     get:
@@ -24,7 +30,111 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /overview:
+    get:
+      operationId: getOverview
+      tags: [overview]
+      summary: Get command centre overview
+      responses:
+        "200":
+          description: Current MMF cycle and import quality summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Overview"
+  /departments:
+    get:
+      operationId: listDepartments
+      tags: [departments]
+      summary: List departments detected from the baseline
+      responses:
+        "200":
+          description: Department list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Department"
+  /imports:
+    get:
+      operationId: listImports
+      tags: [imports]
+      summary: List legacy workbook imports
+      responses:
+        "200":
+          description: Import history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ImportSummary"
+    post:
+      operationId: createImport
+      tags: [imports]
+      summary: Save a validated import review
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ImportInput"
+      responses:
+        "201":
+          description: Import review saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImportSummary"
+  /imports/{importId}:
+    get:
+      operationId: getImport
+      tags: [imports]
+      summary: Get import review details
+      parameters:
+        - $ref: "#/components/parameters/ImportId"
+      responses:
+        "200":
+          description: Import review
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImportDetail"
+        "404":
+          description: Import not found
+  /imports/{importId}/commit:
+    post:
+      operationId: commitImport
+      tags: [imports]
+      summary: Commit an immutable legacy baseline
+      parameters:
+        - $ref: "#/components/parameters/ImportId"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CommitImportInput"
+      responses:
+        "200":
+          description: Baseline committed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImportDetail"
+        "409":
+          description: Import cannot be committed
+        "404":
+          description: Import not found
 components:
+  parameters:
+    ImportId:
+      name: importId
+      in: path
+      required: true
+      schema:
+        type: string
   schemas:
     HealthStatus:
       type: object
@@ -33,4 +143,214 @@ components:
           type: string
       required:
         - status
+    QualityIssue:
+      type: object
+      required: [code, severity, title, detail, rowNumbers]
+      properties:
+        code:
+          type: string
+        severity:
+          type: string
+          enum: [error, warning, review]
+        title:
+          type: string
+        detail:
+          type: string
+        rowNumbers:
+          type: array
+          items:
+            type: integer
+    PreviewRow:
+      type: object
+      required: [sourceRow, systemId, identifier, nomenclature, unit, currentDglp, currentEchs]
+      properties:
+        sourceRow:
+          type: integer
+        systemId:
+          type: ["string", "null"]
+        identifier:
+          type: ["string", "null"]
+        nomenclature:
+          type: ["string", "null"]
+        unit:
+          type: ["string", "null"]
+        currentDglp:
+          type: ["number", "null"]
+        currentEchs:
+          type: ["number", "null"]
+    ImportInput:
+      type: object
+      required: [sourceFileName, sourceFileHash, worksheetName, rowCount, columnCount, departmentCount, uniqueIdentifierCount, missingIdentifierCount, conflictGroupCount, warnings, errors, previewRows]
+      properties:
+        sourceFileName:
+          type: string
+        sourceFileHash:
+          type: string
+        fileSize:
+          type: integer
+        worksheetName:
+          type: string
+        rowCount:
+          type: integer
+        columnCount:
+          type: integer
+        departmentCount:
+          type: integer
+        uniqueIdentifierCount:
+          type: integer
+        missingIdentifierCount:
+          type: integer
+        conflictGroupCount:
+          type: integer
+        warnings:
+          type: integer
+        errors:
+          type: integer
+        previewRows:
+          type: array
+          items:
+            $ref: "#/components/schemas/PreviewRow"
+        issues:
+          type: array
+          items:
+            $ref: "#/components/schemas/QualityIssue"
+    CommitImportInput:
+      type: object
+      properties:
+        acknowledged:
+          type: boolean
+    ImportSummary:
+      type: object
+      required: [id, sourceFileName, worksheetName, rowCount, departmentCount, status, createdAt, quality]
+      properties:
+        id:
+          type: string
+        sourceFileName:
+          type: string
+        worksheetName:
+          type: string
+        rowCount:
+          type: integer
+        columnCount:
+          type: integer
+        departmentCount:
+          type: integer
+        status:
+          type: string
+          enum: [review, committed]
+        createdAt:
+          type: string
+        committedAt:
+          type: ["string", "null"]
+        quality:
+          type: object
+          required: [warnings, errors, conflicts, missingIdentifiers]
+          properties:
+            warnings:
+              type: integer
+            errors:
+              type: integer
+            conflicts:
+              type: integer
+            missingIdentifiers:
+              type: integer
+    ImportDetail:
+      allOf:
+        - $ref: "#/components/schemas/ImportSummary"
+        - type: object
+          required: [sourceFileHash, fileSize, uniqueIdentifierCount, previewRows, issues]
+          properties:
+            sourceFileHash:
+              type: string
+            fileSize:
+              type: integer
+            uniqueIdentifierCount:
+              type: integer
+            previewRows:
+              type: array
+              items:
+                $ref: "#/components/schemas/PreviewRow"
+            issues:
+              type: array
+              items:
+                $ref: "#/components/schemas/QualityIssue"
+    Department:
+      type: object
+      required: [id, name, itemCount, sourceColumnStart]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        itemCount:
+          type: integer
+        sourceColumnStart:
+          type: integer
+    Overview:
+      type: object
+      required: [cycle, baseline, quality, departments, recentActivity]
+      properties:
+        cycle:
+          type: object
+          required: [name, status, deadline, daysRemaining]
+          properties:
+            name:
+              type: string
+            status:
+              type: string
+            deadline:
+              type: string
+            daysRemaining:
+              type: integer
+        baseline:
+          type: object
+          required: [rowCount, departmentCount, uniqueIdentifiers, currentImportStatus]
+          properties:
+            rowCount:
+              type: integer
+            departmentCount:
+              type: integer
+            uniqueIdentifiers:
+              type: integer
+            currentImportStatus:
+              type: string
+        quality:
+          type: object
+          required: [conflicts, warnings, unresolved]
+          properties:
+            conflicts:
+              type: integer
+            warnings:
+              type: integer
+            unresolved:
+              type: integer
+        departments:
+          type: object
+          required: [total, ready, inProgress, needsReview]
+          properties:
+            total:
+              type: integer
+            ready:
+              type: integer
+            inProgress:
+              type: integer
+            needsReview:
+              type: integer
+        recentActivity:
+          type: array
+          items:
+            type: object
+            required: [id, action, detail, timestamp, tone]
+            properties:
+              id:
+                type: string
+              action:
+                type: string
+              detail:
+                type: string
+              timestamp:
+                type: string
+              tone:
+                type: string
+                enum: [neutral, success, warning, critical]
 
