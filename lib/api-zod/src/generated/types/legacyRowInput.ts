@@ -16,7 +16,13 @@ export interface LegacyRowInput {
   /** @nullable */
   nomenclature?: string | null;
   /** @nullable */
+  specification?: string | null;
+  /** @nullable */
   unit?: string | null;
+  /** @nullable */
+  pvms?: string | null;
+  /** @nullable */
+  niv?: string | null;
   /** @nullable */
   previousPvmsMmf?: number | null;
   /** @nullable */

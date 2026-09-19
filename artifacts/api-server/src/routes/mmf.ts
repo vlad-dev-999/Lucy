@@ -251,6 +251,7 @@ async function ensureFixtureImport() {
       errorCount: 0,
       status: "review",
       previewRows: fixturePreviewRows,
+        legacyRows: [],
       issues: fixtureIssues,
     })
     .onConflictDoNothing({ target: mmfImportsTable.id })
@@ -382,10 +383,10 @@ router.post("/imports", async (req, res, next) => {
         sourceObjectPath: input.sourceObjectPath ?? null,
         sourceObjectContentType: input.sourceObjectContentType ?? null,
         previewRows: input.previewRows,
+        legacyRows: input.legacyRows ?? [],
         issues: input.issues ?? [],
       })
       .returning();
-    await persistImportLineage(created, input);
     res.status(201).json(CreateImportResponse.parse(toSummary(created)));
   } catch (error) {
     req.log.error({ error }, "Failed to save import review");
@@ -429,6 +430,24 @@ router.post("/imports/:importId/commit", async (req, res, next) => {
       res.status(409).json({ error: "Resolve import errors before committing a baseline" });
       return;
     }
+    const sourceRows = Array.isArray(found.legacyRows) ? found.legacyRows : [];
+    await persistImportLineage(found, {
+      sourceFileName: found.sourceFileName,
+      sourceFileHash: found.sourceFileHash,
+      fileSize: found.fileSize,
+      worksheetName: found.worksheetName,
+      rowCount: found.rowCount,
+      columnCount: found.columnCount,
+      departmentCount: found.departmentCount,
+      uniqueIdentifierCount: found.uniqueIdentifierCount,
+      missingIdentifierCount: found.missingIdentifierCount,
+      conflictGroupCount: found.conflictGroupCount,
+      warnings: found.warningCount,
+      errors: found.errorCount,
+      previewRows: found.previewRows as never,
+      issues: found.issues as never,
+      legacyRows: sourceRows as never,
+    });
     const [committed] = await db
       .update(mmfImportsTable)
       .set({ status: "committed", committedAt: new Date() })

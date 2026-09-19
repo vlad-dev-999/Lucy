@@ -23,7 +23,10 @@ export const legacyItemsTable = pgTable(
     systemId: text("system_id"),
     identifier: text("identifier"),
     nomenclature: text("nomenclature"),
+    specification: text("specification"),
     unit: text("unit"),
+    pvms: text("pvms"),
+    niv: text("niv"),
     previousPvmsMmf: doublePrecision("previous_pvms_mmf"),
     currentPvmsMmf: doublePrecision("current_pvms_mmf"),
     previousDglpMmf: doublePrecision("previous_dglp_mmf"),
@@ -97,6 +100,10 @@ export const legacyCanonicalLineageTable = pgTable(
       .notNull()
       .references(() => canonicalItemsTable.id, { onDelete: "restrict" }),
     relationship: text("relationship").notNull().default("source"),
+    decision: text("decision"),
+    reviewer: text("reviewer"),
+    reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+    reason: text("reason"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => ({

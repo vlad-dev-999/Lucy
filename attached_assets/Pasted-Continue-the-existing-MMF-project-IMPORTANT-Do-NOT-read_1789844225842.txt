@@ -1,0 +1,179 @@
+Continue the existing MMF project.
+
+IMPORTANT: Do NOT read the project documentation or perform a repository-wide audit.
+
+The previous agent already inspected the current Stage 2 implementation and identified the exact remaining work.
+
+Your job is ONLY to implement these four changes.
+
+==================================================
+STAGE 2 — DATA FOUNDATION
+==================================================
+
+1. IMPORT PERSISTENCE
+
+Current problem:
+Committed imports only persist preview rows.
+
+Change the existing import commit path so that committed workbook rows are persisted as normalized Legacy Item records.
+
+Preserve:
+- import ID
+- worksheet
+- source row
+- original identifier
+- nomenclature
+- specification
+- unit/A/U
+- PVMS
+- NIV
+- DGLP MMF
+- ECHS MMF
+- original/raw fields needed for lineage
+
+Do not replace the existing import system.
+Do not break Stage 1.
+
+Use the existing schema/models/migrations already present.
+
+==================================================
+2. LEGACY MODEL
+
+The existing Legacy Item model is missing separate provenance fields.
+
+Add whatever is necessary for separate:
+
+- specification
+- PVMS
+- NIV
+
+Do not collapse these into a generic identifier field.
+
+Preserve the original imported values.
+
+DGLP and ECHS remain separate.
+
+==================================================
+3. LINEAGE
+
+The existing Legacy → Canonical lineage exists but lacks review metadata.
+
+Add the necessary fields for:
+
+- decision/relationship
+- reviewer
+- reviewed timestamp
+- reason
+
+Do not delete or replace existing lineage.
+
+==================================================
+4. REVIEW RECORDS
+
+Currently only identifier conflicts become review records.
+
+Extend the existing detection/persistence so review records can represent:
+
+- EXACT_DUPLICATE
+- PROBABLE_DUPLICATE
+- IDENTIFIER_CONFLICT
+- MISSING_IDENTIFIER
+- OBSOLETE_CANDIDATE
+- NEW_ITEM
+
+Use the existing review-record architecture.
+
+Do not hard-code the nine known conflicts.
+
+Do not build any UI.
+
+Do not build departments, RBAC, benchmark pricing, freeze/release, exports, or later stages.
+
+==================================================
+IMPORTANT RULES
+
+- Never silently merge legacy records.
+- Never delete legacy records.
+- PVMS/NIV are identifiers, not budget heads.
+- DGLP/ECHS are separate budget heads.
+- Canonical Item ID remains independent of PVMS/NIV.
+- Human review is required for clinical equivalence.
+- Preserve source lineage.
+
+==================================================
+WORKING RULE
+
+The previous agent already inspected the repository.
+
+Do NOT reread:
+- README
+- PRODUCT_SPEC
+- ARCHITECTURE
+- DATA_MODEL
+- WORKFLOWS
+- SECURITY_RBAC
+- roadmap
+- changelog
+
+Do NOT inspect unrelated application code.
+
+Open only the existing files directly involved in:
+- import commit
+- Legacy Item
+- Canonical/lineage models
+- review records
+- their migrations/API handlers
+
+Then implement the four changes above.
+
+Do not give me a plan.
+Start coding immediately.
+
+==================================================
+VERIFICATION
+
+After implementation run only:
+
+- relevant tests
+- typecheck
+- migration/schema validation if applicable
+
+Fix failures caused by your changes.
+
+==================================================
+BATON
+
+After the code works, update the CURRENT project-state baton.
+
+Do NOT create another baton version merely because this is a new Replit instance.
+
+The baton should reflect the actual state after this ticket.
+
+Add a concise entry:
+
+COMPLETED:
+- persistent legacy import rows
+- specification/PVMS/NIV provenance
+- lineage review metadata
+- expanded review-record detection
+
+REMAINING STAGE 2:
+State what is actually still missing.
+
+NEXT TICKET:
+State the next concrete implementation task.
+
+TESTS:
+Record what actually passed.
+
+GIT:
+Record the final commit hash.
+
+==================================================
+COMMIT
+
+Commit only this work:
+
+feat: complete stage 2 data foundation
+
+START CODING NOW.

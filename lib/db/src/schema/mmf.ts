@@ -24,6 +24,7 @@ export const mmfImportsTable = pgTable("mmf_imports", {
   sourceObjectPath: text("source_object_path"),
   sourceObjectContentType: text("source_object_content_type"),
   previewRows: jsonb("preview_rows").notNull().default([]),
+  legacyRows: jsonb("legacy_rows").notNull().default([]),
   issues: jsonb("issues").notNull().default([]),
 });
 

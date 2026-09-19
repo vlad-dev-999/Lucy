@@ -43,7 +43,7 @@ import {
   useListDepartments,
   useListImports,
 } from '@workspace/api-client-react';
-import type { Department, ImportSummary, PreviewRow, QualityIssue } from '@workspace/api-client-react';
+import type { Department, DepartmentInput, ImportSummary, LegacyRowInput, PreviewRow, QualityIssue } from '@workspace/api-client-react';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -302,6 +302,8 @@ type ImportDraft = {
   warnings: number;
   errors: number;
   previewRows: PreviewRow[];
+  legacyRows: LegacyRowInput[];
+  departments: DepartmentInput[];
   issues: QualityIssue[];
 };
 
@@ -346,6 +348,11 @@ async function inspectWorkbook(file: File): Promise<ImportDraft> {
   const sourceRows = matrix.slice(2).filter((row) => row.some((cell) => cellText(cell) !== ''));
   const columnCount = Math.max(headerGroups.length, headers.length);
   const departmentCount = headerGroups.filter((cell) => cellText(cell) !== '').length;
+  const departmentDefinitions = Array.from({ length: Math.max(0, Math.floor((columnCount - 11) / 3)) }, (_, index) => ({
+    name: cellText(headerGroups[11 + index * 3]) || `Department ${index + 1}`,
+    sourceColumnStart: 12 + index * 3,
+    index,
+  }));
   const identifierGroups = new Map<string, { row: number; name: string }[]>();
   const missingRows: number[] = [];
   const malformedRows: number[] = [];
@@ -369,6 +376,38 @@ async function inspectWorkbook(file: File): Promise<ImportDraft> {
       unit: cellText(row[3]) || null,
       currentDglp: numericCell(row[7]),
       currentEchs: numericCell(row[9]),
+    };
+  });
+  const legacyRows: LegacyRowInput[] = sourceRows.map((row, index) => {
+    const sourceRow = index + 3;
+    const identifier = cellText(row[1]) || null;
+    const pvms = identifier && /^pvms(?:[/:\s]|$)/i.test(identifier) ? identifier : null;
+    const niv = identifier && /^niv(?:[/:\s]|$)/i.test(identifier) ? identifier : null;
+    return {
+      sourceRow,
+      systemId: cellText(row[0]) || null,
+      identifier,
+      nomenclature: cellText(row[2]) || null,
+      specification: null,
+      unit: cellText(row[3]) || null,
+      pvms,
+      niv,
+      previousPvmsMmf: numericCell(row[4]),
+      currentPvmsMmf: numericCell(row[5]),
+      previousDglpMmf: numericCell(row[6]),
+      currentDglpMmf: numericCell(row[7]),
+      previousEchsMmf: numericCell(row[8]),
+      currentEchsMmf: numericCell(row[9]),
+      lpr: cellText(row[10]) || null,
+      sourceValues: row.map((cell) => cell ?? null),
+      departments: departmentDefinitions
+        .map((department) => ({
+          departmentIndex: department.index,
+          pvms: cellText(row[11 + department.index * 3]) || null,
+          dglp: numericCell(row[12 + department.index * 3]),
+          echs: numericCell(row[13 + department.index * 3]),
+        }))
+        .filter((department) => department.pvms !== null || department.dglp !== null || department.echs !== null),
     };
   });
 
@@ -431,6 +470,8 @@ async function inspectWorkbook(file: File): Promise<ImportDraft> {
     warnings,
     errors,
     previewRows: uniquePreviewRows,
+    legacyRows,
+    departments: departmentDefinitions.map(({ name, sourceColumnStart }) => ({ name, sourceColumnStart })),
     issues,
   };
 }

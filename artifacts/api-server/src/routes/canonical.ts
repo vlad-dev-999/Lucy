@@ -1,4 +1,5 @@
 import { Router, type IRouter } from "express";
+import { createHash } from "node:crypto";
 import {
   and,
   asc,
@@ -6,6 +7,7 @@ import {
   eq,
   ilike,
   inArray,
+  ne,
   or,
   sql,
 } from "drizzle-orm";
@@ -47,7 +49,10 @@ type LegacyRecordWithDepartments = {
   systemId: string | null;
   identifier: string | null;
   nomenclature: string | null;
+  specification: string | null;
   unit: string | null;
+  pvms: string | null;
+  niv: string | null;
   previousPvmsMmf: number | null;
   currentPvmsMmf: number | null;
   previousDglpMmf: number | null;
@@ -72,13 +77,55 @@ function nullableString(value: string | null | undefined) {
   return value ?? null;
 }
 
+function normalizeText(value: string | null | undefined) {
+  return value?.trim().replace(/\s+/g, " ").toLocaleLowerCase() ?? "";
+}
+
+function splitIdentifier(identifier: string | null | undefined) {
+  const value = nullableString(identifier);
+  return {
+    pvms: value && /^pvms(?:[/:\s]|$)/i.test(value) ? value : null,
+    niv: value && /^niv(?:[/:\s]|$)/i.test(value) ? value : null,
+  };
+}
+
+function legacySignature(row: LegacyRowInput) {
+  const identifiers = splitIdentifier(row.identifier);
+  return [
+    normalizeText(row.identifier),
+    normalizeText(row.nomenclature),
+    normalizeText(row.specification),
+    normalizeText(row.unit),
+    normalizeText(row.pvms ?? identifiers.pvms),
+    normalizeText(row.niv ?? identifiers.niv),
+    row.previousPvmsMmf ?? "",
+    row.currentPvmsMmf ?? "",
+    row.previousDglpMmf ?? "",
+    row.currentDglpMmf ?? "",
+    row.previousEchsMmf ?? "",
+    row.currentEchsMmf ?? "",
+    normalizeText(row.lpr),
+  ].join("|");
+}
+
+function reviewId(importId: string, reviewType: string, candidateIds: string[]) {
+  const digest = createHash("sha256")
+    .update(`${reviewType}|${candidateIds.slice().sort().join("|")}`)
+    .digest("hex")
+    .slice(0, 16);
+  return `review_${importId}_${reviewType.toLowerCase()}_${digest}`;
+}
+
 function fallbackLegacyRows(input: ImportInput): LegacyRowInput[] {
   return input.previewRows.map((row) => ({
     sourceRow: row.sourceRow,
     systemId: row.systemId,
     identifier: row.identifier,
     nomenclature: row.nomenclature,
+    specification: null,
     unit: row.unit,
+    pvms: splitIdentifier(row.identifier).pvms,
+    niv: splitIdentifier(row.identifier).niv,
     currentDglpMmf: row.currentDglp,
     currentEchsMmf: row.currentEchs,
     sourceValues: [
@@ -196,13 +243,6 @@ export async function persistImportLineage(
   importRecord: typeof mmfImportsTable.$inferSelect,
   input: ImportInput,
 ) {
-  const existing = await db
-    .select({ id: legacyItemsTable.id })
-    .from(legacyItemsTable)
-    .where(eq(legacyItemsTable.importId, importRecord.id))
-    .limit(1);
-  if (existing.length) return;
-
   const rows = input.legacyRows?.length ? input.legacyRows : fallbackLegacyRows(input);
   const departments = input.departments ?? [];
   const departmentMap = new Map<number, string>();
@@ -237,7 +277,10 @@ export async function persistImportLineage(
     systemId: nullableString(row.systemId),
     identifier: nullableString(row.identifier),
     nomenclature: nullableString(row.nomenclature),
+    specification: nullableString(row.specification),
     unit: nullableString(row.unit),
+    pvms: nullableString(row.pvms ?? splitIdentifier(row.identifier).pvms),
+    niv: nullableString(row.niv ?? splitIdentifier(row.identifier).niv),
     previousPvmsMmf: row.previousPvmsMmf ?? null,
     currentPvmsMmf: row.currentPvmsMmf ?? null,
     previousDglpMmf: row.previousDglpMmf ?? null,
@@ -272,31 +315,163 @@ export async function persistImportLineage(
     await db.insert(legacyItemDepartmentsTable).values(departmentValues).onConflictDoNothing();
   }
 
-  const issues = (input.issues ?? []).filter((issue) => issue.code === "IDENTIFIER_CONFLICT");
-  for (const issue of issues) {
-    const reviewId = `review_${importRecord.id}_${crypto.randomUUID()}`;
-    const candidateIds = issue.rowNumbers
-      .map((sourceRow) => `legacy_${importRecord.id}_${sourceRow}`)
-      .filter((id) => legacyValues.some((item) => item.id === id));
-    const identifier =
-      legacyValues.find((item) => candidateIds.includes(item.id))?.identifier ?? null;
+  const persistedRows = await db
+    .select()
+    .from(legacyItemsTable)
+    .where(eq(legacyItemsTable.importId, importRecord.id));
+  const persistedBySourceRow = new Map(persistedRows.map((row) => [row.sourceRow, row]));
+
+  type ReviewCandidate = {
+    reviewType:
+      | "EXACT_DUPLICATE"
+      | "PROBABLE_DUPLICATE"
+      | "IDENTIFIER_CONFLICT"
+      | "MISSING_IDENTIFIER"
+      | "OBSOLETE_CANDIDATE"
+      | "NEW_ITEM";
+    candidateIds: string[];
+    identifier?: string | null;
+    title: string;
+    detail: string;
+  };
+
+  const reviewCandidates: ReviewCandidate[] = [];
+  const byIdentifier = new Map<string, LegacyRowInput[]>();
+  const byDescription = new Map<string, LegacyRowInput[]>();
+  const missingRows: LegacyRowInput[] = [];
+
+  for (const row of rows) {
+    const identifier = normalizeText(row.identifier);
+    if (!identifier) {
+      missingRows.push(row);
+    } else {
+      const group = byIdentifier.get(identifier) ?? [];
+      group.push(row);
+      byIdentifier.set(identifier, group);
+    }
+    const descriptionKey = [
+      normalizeText(row.nomenclature),
+      normalizeText(row.specification),
+      normalizeText(row.unit),
+    ].join("|");
+    if (descriptionKey !== "||") {
+      const group = byDescription.get(descriptionKey) ?? [];
+      group.push(row);
+      byDescription.set(descriptionKey, group);
+    }
+  }
+
+  const legacyIdForRow = (row: LegacyRowInput) => persistedBySourceRow.get(row.sourceRow)?.id;
+  const candidateIdsForRows = (candidateRows: LegacyRowInput[]) =>
+    candidateRows.map(legacyIdForRow).filter((id): id is string => Boolean(id));
+
+  for (const [identifier, group] of byIdentifier) {
+    if (group.length < 2) continue;
+    const candidateIds = candidateIdsForRows(group);
+    const exact = new Set(group.map(legacySignature)).size === 1;
+    reviewCandidates.push({
+      reviewType: exact ? "EXACT_DUPLICATE" : "IDENTIFIER_CONFLICT",
+      candidateIds,
+      identifier: group[0].identifier ?? identifier,
+      title: exact
+        ? `${group.length} rows repeat the same legacy item`
+        : `${group[0].identifier ?? identifier} maps to different descriptions`,
+      detail: exact
+        ? "The source contains identical legacy rows. Keep each source row for lineage and review before consolidation."
+        : "Matching identifiers are not proof of clinical equivalence. Keep the records separate until a human reviewer decides.",
+    });
+  }
+
+  for (const [description, group] of byDescription) {
+    const identifiers = new Set(group.map((row) => normalizeText(row.identifier)).filter(Boolean));
+    if (group.length < 2 || identifiers.size < 2) continue;
+    const candidateIds = candidateIdsForRows(group);
+    reviewCandidates.push({
+      reviewType: "PROBABLE_DUPLICATE",
+      candidateIds,
+      identifier: group[0].identifier ?? null,
+      title: "Rows share a description but use different identifiers",
+      detail: `Rows with the normalized description "${description.split("|")[0] || "unnamed item"}" may represent the same item. Human review is required before clinical equivalence is accepted.`,
+    });
+  }
+
+  if (missingRows.length) {
+    reviewCandidates.push({
+      reviewType: "MISSING_IDENTIFIER",
+      candidateIds: candidateIdsForRows(missingRows),
+      identifier: null,
+      title: `${missingRows.length} row${missingRows.length === 1 ? "" : "s"} have no PVMS/NIV identifier`,
+      detail: "Blank identifiers are review warnings. Preserve the source rows and assign canonical identity only after review.",
+    });
+  }
+
+  const priorImport = (
+    await db
+      .select({ id: mmfImportsTable.id })
+      .from(mmfImportsTable)
+      .where(and(eq(mmfImportsTable.status, "committed"), ne(mmfImportsTable.id, importRecord.id)))
+      .orderBy(desc(mmfImportsTable.createdAt))
+      .limit(1)
+  )[0];
+  const priorRows = priorImport
+    ? await db
+        .select()
+        .from(legacyItemsTable)
+        .where(eq(legacyItemsTable.importId, priorImport.id))
+    : [];
+  const priorIdentifiers = new Set(
+    priorRows.map((row) => normalizeText(row.identifier)).filter(Boolean),
+  );
+  const newRows = rows.filter((row) => {
+    const identifier = normalizeText(row.identifier);
+    return Boolean(identifier) && !priorIdentifiers.has(identifier);
+  });
+  if (newRows.length) {
+    reviewCandidates.push({
+      reviewType: "NEW_ITEM",
+      candidateIds: candidateIdsForRows(newRows),
+      identifier: newRows.length === 1 ? newRows[0].identifier ?? null : null,
+      title: `${newRows.length} new legacy item${newRows.length === 1 ? "" : "s"} detected`,
+      detail: "These identifiers were not present in the latest committed import. Create or relate canonical items only after review.",
+    });
+  }
+
+  const currentIdentifiers = new Set(
+    rows.map((row) => normalizeText(row.identifier)).filter(Boolean),
+  );
+  const obsoleteRows = priorRows.filter((row) => {
+    const identifier = normalizeText(row.identifier);
+    return Boolean(identifier) && !currentIdentifiers.has(identifier);
+  });
+  if (obsoleteRows.length) {
+    reviewCandidates.push({
+      reviewType: "OBSOLETE_CANDIDATE",
+      candidateIds: obsoleteRows.map((row) => row.id),
+      identifier: null,
+      title: `${obsoleteRows.length} prior legacy item${obsoleteRows.length === 1 ? "" : "s"} absent from this import`,
+      detail: "These records were present in the latest committed import but are absent from the new source. Do not delete them; review whether they are obsolete.",
+    });
+  }
+
+  for (const candidate of reviewCandidates.filter((item) => item.candidateIds.length)) {
+    const id = reviewId(importRecord.id, candidate.reviewType, candidate.candidateIds);
     const [review] = await db
       .insert(vocabularyReviewsTable)
       .values({
-        id: reviewId,
+        id,
         importId: importRecord.id,
-        reviewType: "identifier_conflict",
-        identifier,
-        title: issue.title,
-        detail: issue.detail,
+        reviewType: candidate.reviewType,
+        identifier: candidate.identifier ?? null,
+        title: candidate.title,
+        detail: candidate.detail,
       })
       .onConflictDoNothing({ target: vocabularyReviewsTable.id })
       .returning();
-    if (review && candidateIds.length) {
+    if (review) {
       await db
         .insert(vocabularyReviewCandidatesTable)
         .values(
-          candidateIds.map((legacyItemId) => ({
+          candidate.candidateIds.map((legacyItemId) => ({
             id: `review_candidate_${review.id}_${legacyItemId}`,
             reviewId: review.id,
             legacyItemId,
@@ -314,6 +489,11 @@ async function createCanonicalFromLegacyIds(
     unit?: string | null;
     pvms?: string | null;
     niv?: string | null;
+  } = {},
+  reviewMetadata: {
+    decision?: string | null;
+    reviewer?: string | null;
+    reason?: string | null;
   } = {},
 ) {
   const uniqueIds = Array.from(new Set(legacyItemIds));
@@ -349,6 +529,10 @@ async function createCanonicalFromLegacyIds(
       legacyItemId,
       canonicalItemId: canonical.id,
       relationship: "source",
+      decision: reviewMetadata.decision ?? null,
+      reviewer: reviewMetadata.reviewer ?? null,
+      reviewedAt: reviewMetadata.decision ? new Date() : null,
+      reason: reviewMetadata.reason ?? null,
     })),
   );
   return toCanonicalDetail(canonical);
@@ -479,9 +663,16 @@ router.post("/vocabulary-reviews/:reviewId/decision", async (req, res, next) => 
       .from(vocabularyReviewCandidatesTable)
       .where(eq(vocabularyReviewCandidatesTable.reviewId, review.id));
     let canonicalItemIds = input.canonicalItemIds ?? [];
+    const reviewMetadata = {
+      decision: input.decision,
+      reviewer: "demo-operator",
+      reason: input.note ?? null,
+    };
     if (input.decision === "MERGE") {
       const created = await createCanonicalFromLegacyIds(
         candidateIds.map((candidate) => candidate.legacyItemId),
+        {},
+        reviewMetadata,
       );
       canonicalItemIds = [created.id];
     } else if (input.decision === "CREATE_CANONICAL") {
@@ -492,7 +683,11 @@ router.post("/vocabulary-reviews/:reviewId/decision", async (req, res, next) => 
       const linkedIds = new Set(available.map((item) => item.legacyItemId));
       for (const candidate of candidateIds) {
         if (!linkedIds.has(candidate.legacyItemId)) {
-          const created = await createCanonicalFromLegacyIds([candidate.legacyItemId]);
+          const created = await createCanonicalFromLegacyIds(
+            [candidate.legacyItemId],
+            {},
+            reviewMetadata,
+          );
           canonicalItemIds.push(created.id);
         }
       }

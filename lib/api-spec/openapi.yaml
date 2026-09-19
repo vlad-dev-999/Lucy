@@ -299,7 +299,13 @@ components:
           type: ["string", "null"]
         nomenclature:
           type: ["string", "null"]
+        specification:
+          type: ["string", "null"]
         unit:
+          type: ["string", "null"]
+        pvms:
+          type: ["string", "null"]
+        niv:
           type: ["string", "null"]
         currentDglp:
           type: ["number", "null"]
@@ -500,7 +506,7 @@ components:
           type: integer
     LegacyItem:
       type: object
-      required: [id, importId, sourceWorksheet, sourceRow, systemId, identifier, nomenclature, unit, previousPvmsMmf, currentPvmsMmf, previousDglpMmf, currentDglpMmf, previousEchsMmf, currentEchsMmf, lpr, sourceValues, departments]
+       required: [id, importId, sourceWorksheet, sourceRow, systemId, identifier, nomenclature, specification, unit, pvms, niv, previousPvmsMmf, currentPvmsMmf, previousDglpMmf, currentDglpMmf, previousEchsMmf, currentEchsMmf, lpr, sourceValues, departments]
       properties:
         id:
           type: string
@@ -516,7 +522,13 @@ components:
           type: ["string", "null"]
         nomenclature:
           type: ["string", "null"]
+        specification:
+          type: ["string", "null"]
         unit:
+          type: ["string", "null"]
+        pvms:
+          type: ["string", "null"]
+        niv:
           type: ["string", "null"]
         previousPvmsMmf:
           type: ["number", "null"]
