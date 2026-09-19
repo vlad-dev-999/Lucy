@@ -55,12 +55,12 @@ The `mmf_imports`, `canonical_items`, and `vocabulary_reviews` tables are pushed
 - Uploaded workbook bytes are not yet persisted to App Storage.
 - Preview rows are stored, not the complete source row set.
 - Demo identity and authorization are not production-ready.
-- Canonical vocabulary list and detail views are implemented; the vocabulary review workflow remains available for review decisions.
+- Canonical vocabulary list and detail views are implemented and runtime-verified, including preserved legacy lineage and review-history fields; the vocabulary review workflow remains available for review decisions.
 - Export is not implemented.
 
 ## Tests
 
-Runtime verification completed after managed workflows were restarted: `GET /api/healthz` returned 200, `GET /api/vocabulary-reviews?limit=20` returned 200 with review records, and `/review-queue` rendered successfully. Browser console contained only normal Vite/React development messages.
+Runtime verification completed after installing the locked workspace dependencies and synchronizing the development schema: `GET /api/imports` returned 200, `GET /api/vocabulary-reviews` returned 200, `GET /api/canonical-items` returned 200, and a canonical detail request returned 200. `/canonical-vocabulary` rendered the list state, `/review-queue` rendered successfully, and `/canonical-vocabulary/:id` rendered the canonical values and linked legacy lineage. The detail response included canonical ID, nomenclature, specification, unit, PVMS, NIV, status, linked legacy records, identifier, legacy nomenclature, source metadata, DGLP/ECHS, department data, and review-history fields. Browser console contained only normal Vite/React development messages.
 
 ## Business Rules
 
@@ -82,7 +82,7 @@ Runtime verification completed after managed workflows were restarted: `GET /api
 
 ## Next Stage
 
-Add protected App Storage source-object persistence and full legacy-row storage with source lineage.
+Stage 3: Departments → Department Item Assignments → Department Workspace → MMF Editing → DGLP/ECHS MMF → Revision History.
 
 ## Do Not Break
 
