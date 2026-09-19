@@ -20,13 +20,20 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  CanonicalItemDetail,
+  CanonicalItemPage,
   CommitImportInput,
+  CreateCanonicalItemInput,
   Department,
   HealthStatus,
   ImportDetail,
   ImportInput,
   ImportSummary,
-  Overview
+  ListCanonicalItemsParams,
+  ListVocabularyReviewsParams,
+  Overview,
+  VocabularyDecisionInput,
+  VocabularyReview
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -617,5 +624,427 @@ export const useCommitImport = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getCommitImportMutationOptions(options));
+    }
+
+export const getListCanonicalItemsUrl = (params?: ListCanonicalItemsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/canonical-items?${stringifiedParams}` : `/api/canonical-items`
+}
+
+/**
+ * @summary Search canonical vocabulary
+ */
+export const listCanonicalItems = async (params?: ListCanonicalItemsParams, options?: Parameters<typeof customFetch>[1]): Promise<CanonicalItemPage> => {
+
+  return customFetch<CanonicalItemPage>(getListCanonicalItemsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListCanonicalItemsQueryKey = (params?: ListCanonicalItemsParams,) => {
+    return [
+    `/api/canonical-items`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListCanonicalItemsQueryOptions = <TData = Awaited<ReturnType<typeof listCanonicalItems>>, TError = ErrorType<unknown>>(params?: ListCanonicalItemsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listCanonicalItems>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListCanonicalItemsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listCanonicalItems>>> = ({ signal }) => listCanonicalItems(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listCanonicalItems>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListCanonicalItemsQueryResult = NonNullable<Awaited<ReturnType<typeof listCanonicalItems>>>
+export type ListCanonicalItemsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Search canonical vocabulary
+ */
+
+export function useListCanonicalItems<TData = Awaited<ReturnType<typeof listCanonicalItems>>, TError = ErrorType<unknown>>(
+ params?: ListCanonicalItemsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listCanonicalItems>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListCanonicalItemsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateCanonicalItemUrl = () => {
+
+
+
+
+  return `/api/canonical-items`
+}
+
+/**
+ * @summary Create a canonical item from immutable legacy records
+ */
+export const createCanonicalItem = async (createCanonicalItemInput: CreateCanonicalItemInput, options?: Parameters<typeof customFetch>[1]): Promise<CanonicalItemDetail> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<CanonicalItemDetail>(getCreateCanonicalItemUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(createCanonicalItemInput)
+  }
+);}
+
+
+
+
+
+export const getCreateCanonicalItemMutationKey = () => ['createCanonicalItem'] as const;
+
+export const getCreateCanonicalItemMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCanonicalItem>>, TError,CreateCanonicalItemMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createCanonicalItem>>, TError,CreateCanonicalItemMutationVariables, TContext> => {
+
+const mutationKey = getCreateCanonicalItemMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createCanonicalItem>>, CreateCanonicalItemMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  createCanonicalItem(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateCanonicalItemMutationResult = NonNullable<Awaited<ReturnType<typeof createCanonicalItem>>>
+    export type CreateCanonicalItemMutationBody = BodyType<CreateCanonicalItemInput>
+    export type CreateCanonicalItemMutationError = ErrorType<void>
+    export type CreateCanonicalItemMutationVariables = {data: BodyType<CreateCanonicalItemInput>}
+
+    /**
+ * @summary Create a canonical item from immutable legacy records
+ */
+export const useCreateCanonicalItem = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCanonicalItem>>, TError,CreateCanonicalItemMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createCanonicalItem>>,
+        TError,
+        CreateCanonicalItemMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCreateCanonicalItemMutationOptions(options));
+    }
+
+export const getGetCanonicalItemUrl = (canonicalItemId: string,) => {
+
+
+
+
+  return `/api/canonical-items/${canonicalItemId}`
+}
+
+/**
+ * @summary Get canonical item detail and lineage
+ */
+export const getCanonicalItem = async (canonicalItemId: string, options?: Parameters<typeof customFetch>[1]): Promise<CanonicalItemDetail> => {
+
+  return customFetch<CanonicalItemDetail>(getGetCanonicalItemUrl(canonicalItemId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetCanonicalItemQueryKey = (canonicalItemId: string,) => {
+    return [
+    `/api/canonical-items/${canonicalItemId}`
+    ] as const;
+    }
+
+
+export const getGetCanonicalItemQueryOptions = <TData = Awaited<ReturnType<typeof getCanonicalItem>>, TError = ErrorType<void>>(canonicalItemId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCanonicalItem>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetCanonicalItemQueryKey(canonicalItemId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getCanonicalItem>>> = ({ signal }) => getCanonicalItem(canonicalItemId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: canonicalItemId !== null && canonicalItemId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getCanonicalItem>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetCanonicalItemQueryResult = NonNullable<Awaited<ReturnType<typeof getCanonicalItem>>>
+export type GetCanonicalItemQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get canonical item detail and lineage
+ */
+
+export function useGetCanonicalItem<TData = Awaited<ReturnType<typeof getCanonicalItem>>, TError = ErrorType<void>>(
+ canonicalItemId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCanonicalItem>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetCanonicalItemQueryOptions(canonicalItemId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getListVocabularyReviewsUrl = (params?: ListVocabularyReviewsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/vocabulary-reviews?${stringifiedParams}` : `/api/vocabulary-reviews`
+}
+
+/**
+ * @summary List vocabulary review records
+ */
+export const listVocabularyReviews = async (params?: ListVocabularyReviewsParams, options?: Parameters<typeof customFetch>[1]): Promise<VocabularyReview[]> => {
+
+  return customFetch<VocabularyReview[]>(getListVocabularyReviewsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListVocabularyReviewsQueryKey = (params?: ListVocabularyReviewsParams,) => {
+    return [
+    `/api/vocabulary-reviews`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListVocabularyReviewsQueryOptions = <TData = Awaited<ReturnType<typeof listVocabularyReviews>>, TError = ErrorType<unknown>>(params?: ListVocabularyReviewsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listVocabularyReviews>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListVocabularyReviewsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listVocabularyReviews>>> = ({ signal }) => listVocabularyReviews(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listVocabularyReviews>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListVocabularyReviewsQueryResult = NonNullable<Awaited<ReturnType<typeof listVocabularyReviews>>>
+export type ListVocabularyReviewsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List vocabulary review records
+ */
+
+export function useListVocabularyReviews<TData = Awaited<ReturnType<typeof listVocabularyReviews>>, TError = ErrorType<unknown>>(
+ params?: ListVocabularyReviewsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listVocabularyReviews>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListVocabularyReviewsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getDecideVocabularyReviewUrl = (reviewId: string,) => {
+
+
+
+
+  return `/api/vocabulary-reviews/${reviewId}/decision`
+}
+
+/**
+ * @summary Record a human vocabulary review decision
+ */
+export const decideVocabularyReview = async (reviewId: string,
+    vocabularyDecisionInput: VocabularyDecisionInput, options?: Parameters<typeof customFetch>[1]): Promise<VocabularyReview> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<VocabularyReview>(getDecideVocabularyReviewUrl(reviewId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(vocabularyDecisionInput)
+  }
+);}
+
+
+
+
+
+export const getDecideVocabularyReviewMutationKey = () => ['decideVocabularyReview'] as const;
+
+export const getDecideVocabularyReviewMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof decideVocabularyReview>>, TError,DecideVocabularyReviewMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof decideVocabularyReview>>, TError,DecideVocabularyReviewMutationVariables, TContext> => {
+
+const mutationKey = getDecideVocabularyReviewMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof decideVocabularyReview>>, DecideVocabularyReviewMutationVariables> = (props) => {
+          const {reviewId,data} = props ?? {};
+
+          return  decideVocabularyReview(reviewId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DecideVocabularyReviewMutationResult = NonNullable<Awaited<ReturnType<typeof decideVocabularyReview>>>
+    export type DecideVocabularyReviewMutationBody = BodyType<VocabularyDecisionInput>
+    export type DecideVocabularyReviewMutationError = ErrorType<void>
+    export type DecideVocabularyReviewMutationVariables = {reviewId: string;data: BodyType<VocabularyDecisionInput>}
+
+    /**
+ * @summary Record a human vocabulary review decision
+ */
+export const useDecideVocabularyReview = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof decideVocabularyReview>>, TError,DecideVocabularyReviewMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof decideVocabularyReview>>,
+        TError,
+        DecideVocabularyReviewMutationVariables,
+        TContext
+      > => {
+      return useMutation(getDecideVocabularyReviewMutationOptions(options));
     }
 

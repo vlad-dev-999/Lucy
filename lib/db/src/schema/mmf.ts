@@ -19,6 +19,10 @@ export const mmfImportsTable = pgTable("mmf_imports", {
   status: text("status").notNull().default("review"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   committedAt: timestamp("committed_at", { withTimezone: true }),
+  uploadedBy: text("uploaded_by").notNull().default("demo-operator"),
+  importerVersion: text("importer_version").notNull().default("stage-1-browser-parser"),
+  sourceObjectPath: text("source_object_path"),
+  sourceObjectContentType: text("source_object_content_type"),
   previewRows: jsonb("preview_rows").notNull().default([]),
   issues: jsonb("issues").notNull().default([]),
 });

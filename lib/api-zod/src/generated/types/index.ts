@@ -6,14 +6,27 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from './canonicalItem';
+export * from './canonicalItemDetail';
+export * from './canonicalItemDetailVocabularyHistoryItem';
+export * from './canonicalItemPage';
 export * from './commitImportInput';
+export * from './createCanonicalItemInput';
 export * from './department';
+export * from './departmentInput';
 export * from './healthStatus';
 export * from './importDetail';
 export * from './importInput';
 export * from './importSummary';
 export * from './importSummaryQuality';
 export * from './importSummaryStatus';
+export * from './legacyItem';
+export * from './legacyItemDepartmentsItem';
+export * from './legacyRowInput';
+export * from './legacyRowInputDepartmentsItem';
+export * from './listCanonicalItemsParams';
+export * from './listVocabularyReviewsParams';
+export * from './listVocabularyReviewsStatus';
 export * from './overview';
 export * from './overviewBaseline';
 export * from './overviewCycle';
@@ -24,3 +37,6 @@ export * from './overviewRecentActivityItemTone';
 export * from './previewRow';
 export * from './qualityIssue';
 export * from './qualityIssueSeverity';
+export * from './vocabularyDecisionInput';
+export * from './vocabularyDecisionInputDecision';
+export * from './vocabularyReview';

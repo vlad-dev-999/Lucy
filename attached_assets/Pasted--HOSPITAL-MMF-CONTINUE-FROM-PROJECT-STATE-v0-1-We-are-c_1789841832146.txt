@@ -1,0 +1,541 @@
+# HOSPITAL MMF — CONTINUE FROM PROJECT STATE v0.1
+
+We are continuing development of the Hospital MMF application.
+
+DO NOT START OVER.
+
+The previous Replit instance has completed the first MVP slice and created:
+
+docs/project-state/PROJECT_STATE_v0.1.md
+
+Read that file FIRST.
+
+Then inspect the actual repository and current implementation.
+
+The previous instance has already verified the real workbook and implemented the initial import workflow.
+
+============================================================
+CURRENT VERIFIED STATE
+============================================================
+
+The actual legacy workbook is:
+
+MMF DGLP 2026-27.xlsx
+
+Verified workbook structure:
+
+- 1 worksheet: Worksheet
+- 6,205 data rows
+- 219 columns
+- 69 department/functional destinations
+- 6,195 unique identifier values
+- 1 missing PVMS/NIV identifier
+- 9 identifier conflict groups
+
+The workbook is the authoritative legacy interface.
+
+Do not repeat workbook discovery unless required to verify an implementation detail.
+
+The previous instance implemented:
+
+- desktop-first Hospital MMF Command Centre
+- PostgreSQL-backed import records
+- real API
+- guided workbook import review
+- XLSX/XLS/CSV browser parsing
+- SHA-256 source hashing
+- legacy header validation
+- missing PVMS/NIV detection
+- duplicate/conflicting identifier detection
+- malformed MMF detection
+- separate DGLP/ECHS handling
+- import history
+- import detail views
+- preview rows with source lineage
+- review queue for identifier issues
+- immutable baseline commit workflow
+- department list based on the actual 69 destinations
+- project documentation
+- PROJECT_STATE_v0.1.md
+
+Verification already completed:
+
+- full workspace typecheck passes
+- production web build passes
+- API/web workflows run
+- overview endpoint verified
+- import list endpoint verified
+- department list endpoint verified
+- import detail endpoint verified
+- create endpoint verified
+- commit endpoint verified
+- dashboard and import-review screens visually checked
+
+============================================================
+CURRENT LIMITATION
+============================================================
+
+The current system stores:
+
+- file hash
+- provenance
+- validation findings
+- preview data
+- import records
+
+But it does NOT yet have the complete protected source-workbook storage,
+canonical vocabulary, RBAC, audit log, freeze/release governance,
+or exact legacy XLSX export.
+
+These remain future stages.
+
+============================================================
+YOUR TASK
+============================================================
+
+Continue from PROJECT_STATE_v0.1.
+
+The next major objective is:
+
+STAGE 2 — CANONICAL VOCABULARY AND LEGACY LINEAGE
+
+Do not redesign the existing Command Centre unnecessarily.
+
+Extend it.
+
+Preserve working Stage 1 functionality.
+
+============================================================
+1. FIRST READ
+============================================================
+
+Before coding:
+
+1. Read PROJECT_STATE_v0.1.md.
+2. Read README.md.
+3. Read PRODUCT_SPEC.md.
+4. Read DATA_MODEL.md.
+5. Read IMPORT_EXPORT.md.
+6. Inspect current database schema/migrations.
+7. Inspect import code.
+8. Inspect current UI.
+9. Inspect tests.
+
+Determine exactly what exists.
+
+If documentation conflicts with code:
+
+CODE IS THE IMPLEMENTATION REALITY.
+
+Correct documentation where necessary.
+
+============================================================
+2. PROTECTED SOURCE WORKBOOK
+============================================================
+
+Strengthen the current import baseline.
+
+The original source workbook must become protected historical source data.
+
+The system should preserve:
+
+- original file
+- SHA-256 hash
+- original filename
+- uploader
+- timestamp
+- import ID
+- importer version
+- validation result
+- source row lineage
+
+The source artifact must never be silently replaced or modified.
+
+If the current implementation only stores hash/provenance and parsed preview data,
+implement proper protected source storage appropriate to the current application
+architecture.
+
+Do not compromise the existing import workflow.
+
+============================================================
+3. LEGACY ITEM MODEL
+============================================================
+
+Create a proper Legacy Item representation.
+
+Each legacy row must remain traceable to:
+
+- source import
+- source worksheet
+- source row
+- original identifier values
+- original nomenclature
+- original unit/A/U
+- original DGLP MMF
+- original ECHS MMF
+- relevant legacy fields
+
+Do not flatten away information needed for future exact export.
+
+The legacy representation is immutable.
+
+============================================================
+4. CANONICAL ITEM MODEL
+============================================================
+
+Introduce the internal:
+
+CANONICAL ITEM ID
+
+This must be independent of:
+
+- PVMS
+- NIV
+- legacy row number
+- nomenclature
+
+Example:
+
+CAN-000001
+
+The Canonical Item ID is the application's stable identity for an item.
+
+PVMS and NIV remain attributes/identifiers associated with the item.
+
+Never use PVMS or NIV as the primary key.
+
+============================================================
+5. LEGACY → CANONICAL LINEAGE
+============================================================
+
+Create explicit lineage between legacy records and canonical items.
+
+Conceptually:
+
+Legacy Record
+      ↓
+Canonical Item
+
+and potentially:
+
+Legacy Record A
+Legacy Record B
+      ↓
+Canonical Item CAN-001234
+
+The lineage must preserve the original records.
+
+Do not delete legacy records when merging them into a canonical item.
+
+Do not silently merge records.
+
+============================================================
+6. VOCABULARY REVIEW
+============================================================
+
+The current Stage 1 validation has identified:
+
+9 identifier conflict groups
+
+These must become actionable review records.
+
+Create a vocabulary review queue supporting:
+
+- duplicate identifier
+- identifier conflict
+- probable nomenclature duplicate
+- missing identifier
+- obsolete candidate
+
+The system should eventually support decisions:
+
+MERGE
+KEEP SEPARATE
+CORRECT
+RETIRE
+CREATE CANONICAL
+INVESTIGATE
+
+For this stage, prioritize identifier conflicts and canonical-item creation.
+
+A conflict means the identifier appears against materially different records.
+
+Do NOT assume the records are clinically equivalent.
+
+============================================================
+7. REVIEW UI
+============================================================
+
+Create a polished desktop review interface.
+
+This is a hospital governance application.
+
+Do not build a primitive CRUD screen.
+
+For an identifier conflict, show the records side by side.
+
+Example structure:
+
+IDENTIFIER CONFLICT
+
+Identifier: NIV/22
+
+LEGACY RECORD A
+Nomenclature
+Unit
+PVMS
+NIV
+DGLP
+ECHS
+Department(s)
+Source row
+
+LEGACY RECORD B
+Nomenclature
+Unit
+PVMS
+NIV
+DGLP
+ECHS
+Department(s)
+Source row
+
+Then provide clear review actions.
+
+The reviewer should understand WHY the system flagged the records.
+
+============================================================
+8. CANONICAL VOCABULARY SCREEN
+============================================================
+
+Create a searchable canonical vocabulary screen.
+
+Columns should be useful rather than exhaustive.
+
+For example:
+
+Canonical ID
+Nomenclature
+PVMS
+NIV
+Unit
+Legacy Records
+Departments
+Status
+Actions
+
+Support:
+
+- search
+- filtering
+- sorting
+- pagination
+- detail view
+
+A canonical item detail page should expose:
+
+- canonical identity
+- identifiers
+- nomenclature
+- unit
+- linked legacy records
+- departments
+- vocabulary history
+- review decisions
+
+============================================================
+9. IMPORTANT BUSINESS RULES
+============================================================
+
+Do not break these:
+
+PVMS/NIV are identifiers.
+
+DGLP/ECHS are the only budget heads.
+
+Blank PVMS/NIV is legitimate legacy data and is a warning.
+
+Canonical Item ID is independent of PVMS/NIV.
+
+Legacy data is immutable.
+
+Similar nomenclature does not prove clinical equivalence.
+
+Matching identifiers does not prove clinical equivalence.
+
+Never silently merge.
+
+Never silently delete.
+
+Department removal later must not delete the canonical item.
+
+============================================================
+10. DEPARTMENT MODEL
+============================================================
+
+The workbook has exactly:
+
+69 department/functional destinations.
+
+Use the existing Stage 1 department extraction.
+
+Do not invent another department list.
+
+Create proper department entities and preserve the relationship between
+legacy source records and their department destinations.
+
+Do not yet build the complete departmental MMF workspace unless required
+to establish the data model cleanly.
+
+That is the next stage after canonical vocabulary.
+
+============================================================
+11. DGLP / ECHS
+============================================================
+
+Continue preserving:
+
+DGLP
+ECHS
+
+as separate values.
+
+Never turn them into a generic "budget head" string in a way that loses
+the distinction.
+
+The data model must support:
+
+item + DGLP MMF
+
+and:
+
+item + ECHS MMF
+
+independently.
+
+============================================================
+12. UI QUALITY
+============================================================
+
+The intended use is desktop PC.
+
+Prioritise desktop UX.
+
+Do NOT spend development effort on mobile layouts.
+
+Maintain a coherent professional visual language across the application.
+
+The Stage 1 Command Centre should remain visually coherent.
+
+New vocabulary/review screens must use the same design system.
+
+A feature is not complete merely because its database tables and API exist.
+
+It must have a usable, polished desktop interface.
+
+============================================================
+13. DO NOT BUILD YET
+============================================================
+
+Do not prematurely implement:
+
+- complex multi-hospital SaaS
+- speculative infrastructure
+- mobile-first layouts
+- unrelated integrations
+- unnecessary notification systems
+- advanced analytics unrelated to MMF
+- production deployment abstractions
+
+Focus on the actual MVP.
+
+============================================================
+14. TESTING
+============================================================
+
+Add tests for:
+
+- legacy item creation
+- source-row lineage
+- canonical item creation
+- canonical ID uniqueness
+- legacy immutability
+- identifier conflict creation
+- vocabulary review
+- merge/keep-separate semantics
+- DGLP/ECHS separation
+- department associations
+
+Existing Stage 1 tests must continue passing.
+
+============================================================
+15. PROJECT STATE HANDOFF
+============================================================
+
+When this stage is complete:
+
+Create:
+
+docs/project-state/PROJECT_STATE_v0.2.md
+
+It must document:
+
+- what was actually implemented
+- current database schema
+- current API
+- current UI
+- canonical vocabulary behavior
+- review workflow
+- workbook findings
+- tests
+- known limitations
+- anything deliberately deferred
+- exact next development stage
+
+Do not claim anything is implemented unless verified.
+
+Update:
+
+README.md
+DEVELOPMENT_STATUS.md
+CHANGELOG.md
+DECISIONS.md
+
+where appropriate.
+
+Then run:
+
+- typecheck
+- production build
+- tests
+- relevant API verification
+
+Visually inspect the major new desktop screens.
+
+Commit the completed stage.
+
+Commit message:
+
+feat: establish canonical vocabulary and legacy lineage
+
+The repository and PROJECT_STATE_v0.2.md become the handoff to the next Replit instance.
+
+============================================================
+16. NEXT INSTANCE TARGET
+============================================================
+
+The next instance should be able to read PROJECT_STATE_v0.2.md and proceed naturally to:
+
+STAGE 3
+
+DEPARTMENTS
+→ DEPARTMENT ITEM ASSIGNMENTS
+→ DEPARTMENT WORKSPACE
+→ MMF EDITING
+→ DGLP/ECHS MMF
+→ REVISION HISTORY
+
+Do not implement that entire next stage merely for the sake of claiming
+completion.
+
+Build this stage properly first.

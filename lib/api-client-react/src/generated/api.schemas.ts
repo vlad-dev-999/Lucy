@@ -42,6 +42,49 @@ export interface PreviewRow {
   currentEchs: number | null;
 }
 
+export type LegacyRowInputDepartmentsItem = {
+  departmentIndex: number;
+  /** @nullable */
+  pvms?: string | null;
+  /** @nullable */
+  dglp?: number | null;
+  /** @nullable */
+  echs?: number | null;
+};
+
+export interface LegacyRowInput {
+  sourceRow: number;
+  /** @nullable */
+  systemId?: string | null;
+  /** @nullable */
+  identifier?: string | null;
+  /** @nullable */
+  nomenclature?: string | null;
+  /** @nullable */
+  unit?: string | null;
+  /** @nullable */
+  previousPvmsMmf?: number | null;
+  /** @nullable */
+  currentPvmsMmf?: number | null;
+  /** @nullable */
+  previousDglpMmf?: number | null;
+  /** @nullable */
+  currentDglpMmf?: number | null;
+  /** @nullable */
+  previousEchsMmf?: number | null;
+  /** @nullable */
+  currentEchsMmf?: number | null;
+  /** @nullable */
+  lpr?: string | null;
+  sourceValues: unknown[];
+  departments: LegacyRowInputDepartmentsItem[];
+}
+
+export interface DepartmentInput {
+  name: string;
+  sourceColumnStart: number;
+}
+
 export interface ImportInput {
   sourceFileName: string;
   sourceFileHash: string;
@@ -57,6 +100,12 @@ export interface ImportInput {
   errors: number;
   previewRows: PreviewRow[];
   issues?: QualityIssue[];
+  legacyRows?: LegacyRowInput[];
+  departments?: DepartmentInput[];
+  /** @nullable */
+  sourceObjectPath?: string | null;
+  /** @nullable */
+  sourceObjectContentType?: string | null;
 }
 
 export interface CommitImportInput {
@@ -104,7 +153,131 @@ export interface Department {
   id: string;
   name: string;
   itemCount: number;
-  sourceColumnStart: number;
+}
+
+export interface CanonicalItem {
+  id: string;
+  canonicalId: string;
+  /** @nullable */
+  nomenclature: string | null;
+  /** @nullable */
+  unit: string | null;
+  /** @nullable */
+  pvms: string | null;
+  /** @nullable */
+  niv: string | null;
+  status: string;
+  legacyRecordCount: number;
+  departmentCount: number;
+}
+
+export type LegacyItemDepartmentsItem = {
+  name: string;
+  /** @nullable */
+  pvms: string | null;
+  /** @nullable */
+  dglp: number | null;
+  /** @nullable */
+  echs: number | null;
+};
+
+export interface LegacyItem {
+  id: string;
+  importId: string;
+  sourceWorksheet: string;
+  sourceRow: number;
+  /** @nullable */
+  systemId: string | null;
+  /** @nullable */
+  identifier: string | null;
+  /** @nullable */
+  nomenclature: string | null;
+  /** @nullable */
+  unit: string | null;
+  /** @nullable */
+  previousPvmsMmf: number | null;
+  /** @nullable */
+  currentPvmsMmf: number | null;
+  /** @nullable */
+  previousDglpMmf: number | null;
+  /** @nullable */
+  currentDglpMmf: number | null;
+  /** @nullable */
+  previousEchsMmf: number | null;
+  /** @nullable */
+  currentEchsMmf: number | null;
+  /** @nullable */
+  lpr: string | null;
+  sourceValues: unknown[];
+  departments: LegacyItemDepartmentsItem[];
+}
+
+export type CanonicalItemDetailVocabularyHistoryItem = {
+  id: string;
+  reviewType: string;
+  status: string;
+  title: string;
+  detail: string;
+};
+
+export type CanonicalItemDetail = CanonicalItem & {
+  legacyRecords: LegacyItem[];
+  vocabularyHistory: CanonicalItemDetailVocabularyHistoryItem[];
+};
+
+export interface CanonicalItemPage {
+  items: CanonicalItem[];
+  page: number;
+  pageSize: number;
+  total: number;
+}
+
+export interface CreateCanonicalItemInput {
+  /** @minItems 1 */
+  legacyItemIds: string[];
+  /** @nullable */
+  nomenclature?: string | null;
+  /** @nullable */
+  unit?: string | null;
+  /** @nullable */
+  pvms?: string | null;
+  /** @nullable */
+  niv?: string | null;
+}
+
+export interface VocabularyReview {
+  id: string;
+  importId: string;
+  reviewType: string;
+  /** @nullable */
+  identifier: string | null;
+  title: string;
+  detail: string;
+  status: string;
+  /** @nullable */
+  decision?: string | null;
+  /** @nullable */
+  decisionNote?: string | null;
+  candidateRecords: LegacyItem[];
+}
+
+export type VocabularyDecisionInputDecision = typeof VocabularyDecisionInputDecision[keyof typeof VocabularyDecisionInputDecision];
+
+
+export const VocabularyDecisionInputDecision = {
+  MERGE: 'MERGE',
+  KEEP_SEPARATE: 'KEEP_SEPARATE',
+  CORRECT: 'CORRECT',
+  RETIRE: 'RETIRE',
+  CREATE_CANONICAL: 'CREATE_CANONICAL',
+  INVESTIGATE: 'INVESTIGATE',
+} as const;
+
+export interface VocabularyDecisionInput {
+  decision: VocabularyDecisionInputDecision;
+  note?: string;
+  canonicalItemIds?: string[];
+  sourceColumnStart?: number;
 }
 
 export type OverviewCycle = {
@@ -159,4 +332,31 @@ export interface Overview {
   departments: OverviewDepartments;
   recentActivity: OverviewRecentActivityItem[];
 }
+
+export type ListCanonicalItemsParams = {
+search?: string;
+status?: string;
+/**
+ * @minimum 1
+ */
+page?: number;
+/**
+ * @minimum 1
+ * @maximum 100
+ */
+pageSize?: number;
+};
+
+export type ListVocabularyReviewsParams = {
+status?: ListVocabularyReviewsStatus;
+};
+
+export type ListVocabularyReviewsStatus = typeof ListVocabularyReviewsStatus[keyof typeof ListVocabularyReviewsStatus];
+
+
+export const ListVocabularyReviewsStatus = {
+  open: 'open',
+  resolved: 'resolved',
+  all: 'all',
+} as const;
 

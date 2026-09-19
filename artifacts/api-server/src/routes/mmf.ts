@@ -14,10 +14,11 @@ import {
 } from "@workspace/api-zod";
 import { db } from "@workspace/db";
 import { mmfImportsTable, type MmfImport } from "@workspace/db/schema";
+import { persistImportLineage } from "./canonical";
 
 const router: IRouter = Router();
 
-const DEPARTMENT_NAMES = [
+export const DEPARTMENT_NAMES = [
   "A-E-MS",
   "BLOOD BANK-MS",
   "BURN CENTER",
@@ -207,7 +208,30 @@ async function ensureFixtureImport() {
     .from(mmfImportsTable)
     .where(eq(mmfImportsTable.sourceFileName, "MMF DGLP 2026-27.xlsx"))
     .limit(1);
-  if (existing[0]) return existing[0];
+  const fixtureInput = {
+    sourceFileName: "MMF DGLP 2026-27.xlsx",
+    sourceFileHash: "f35a8f1613ecd726e23280c20576c608aa0c933e450385ad69055290b8a6fd9c",
+    fileSize: 4662898,
+    worksheetName: "Worksheet",
+    rowCount: 6205,
+    columnCount: 219,
+    departmentCount: 69,
+    uniqueIdentifierCount: 6195,
+    missingIdentifierCount: 1,
+    conflictGroupCount: 9,
+    warnings: 1,
+    errors: 0,
+    previewRows: fixturePreviewRows,
+    issues: fixtureIssues,
+    departments: DEPARTMENT_NAMES.map((name, index) => ({
+      name,
+      sourceColumnStart: 12 + index * 3,
+    })),
+  };
+  if (existing[0]) {
+    await persistImportLineage(existing[0], fixtureInput);
+    return existing[0];
+  }
 
   const [created] = await db
     .insert(mmfImportsTable)
@@ -231,13 +255,17 @@ async function ensureFixtureImport() {
     })
     .onConflictDoNothing({ target: mmfImportsTable.id })
     .returning();
-  if (created) return created;
+  if (created) {
+    await persistImportLineage(created, fixtureInput);
+    return created;
+  }
   const [existingAfterRace] = await db
     .select()
     .from(mmfImportsTable)
     .where(eq(mmfImportsTable.id, "imp_fixture_2026_27"))
     .limit(1);
   if (!existingAfterRace) throw new Error("Fixture import could not be initialized");
+  await persistImportLineage(existingAfterRace, fixtureInput);
   return existingAfterRace;
 }
 
@@ -351,10 +379,13 @@ router.post("/imports", async (req, res, next) => {
         errorCount: input.errors,
         status: "review",
         createdAt: now,
+        sourceObjectPath: input.sourceObjectPath ?? null,
+        sourceObjectContentType: input.sourceObjectContentType ?? null,
         previewRows: input.previewRows,
         issues: input.issues ?? [],
       })
       .returning();
+    await persistImportLineage(created, input);
     res.status(201).json(CreateImportResponse.parse(toSummary(created)));
   } catch (error) {
     req.log.error({ error }, "Failed to save import review");

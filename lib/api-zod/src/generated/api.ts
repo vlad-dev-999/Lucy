@@ -60,8 +60,7 @@ export const GetOverviewResponse = zod.object({
 export const ListDepartmentsResponseItem = zod.object({
   "id": zod.string(),
   "name": zod.string(),
-  "itemCount": zod.number().int(),
-  "sourceColumnStart": zod.number().int()
+  "itemCount": zod.number().int()
 })
 export const ListDepartmentsResponse = zod.array(ListDepartmentsResponseItem)
 
@@ -120,7 +119,34 @@ export const CreateImportBody = zod.object({
   "title": zod.string(),
   "detail": zod.string(),
   "rowNumbers": zod.array(zod.number().int())
-})).optional()
+})).optional(),
+  "legacyRows": zod.array(zod.object({
+  "sourceRow": zod.number().int(),
+  "systemId": zod.string().nullish(),
+  "identifier": zod.string().nullish(),
+  "nomenclature": zod.string().nullish(),
+  "unit": zod.string().nullish(),
+  "previousPvmsMmf": zod.number().nullish(),
+  "currentPvmsMmf": zod.number().nullish(),
+  "previousDglpMmf": zod.number().nullish(),
+  "currentDglpMmf": zod.number().nullish(),
+  "previousEchsMmf": zod.number().nullish(),
+  "currentEchsMmf": zod.number().nullish(),
+  "lpr": zod.string().nullish(),
+  "sourceValues": zod.array(zod.unknown()),
+  "departments": zod.array(zod.object({
+  "departmentIndex": zod.number().int(),
+  "pvms": zod.string().nullish(),
+  "dglp": zod.number().nullish(),
+  "echs": zod.number().nullish()
+}))
+})).optional(),
+  "departments": zod.array(zod.object({
+  "name": zod.string(),
+  "sourceColumnStart": zod.number().int()
+})).optional(),
+  "sourceObjectPath": zod.string().nullish(),
+  "sourceObjectContentType": zod.string().nullish()
 })
 
 export const CreateImportResponse = zod.object({
@@ -236,5 +262,247 @@ export const CommitImportResponse = zod.object({
   "rowNumbers": zod.array(zod.number().int())
 }))
 }))
+
+
+/**
+ * @summary Search canonical vocabulary
+ */
+export const listCanonicalItemsQueryPageDefault = 1;
+
+export const listCanonicalItemsQueryPageSizeDefault = 25;
+export const listCanonicalItemsQueryPageSizeMax = 100;
+
+
+
+export const ListCanonicalItemsQueryParams = zod.object({
+  "search": zod.coerce.string().optional(),
+  "status": zod.coerce.string().optional(),
+  "page": zod.coerce.number().int().min(1).default(listCanonicalItemsQueryPageDefault),
+  "pageSize": zod.coerce.number().int().min(1).max(listCanonicalItemsQueryPageSizeMax).default(listCanonicalItemsQueryPageSizeDefault)
+})
+
+export const ListCanonicalItemsResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.string(),
+  "canonicalId": zod.string(),
+  "nomenclature": zod.string().nullable(),
+  "unit": zod.string().nullable(),
+  "pvms": zod.string().nullable(),
+  "niv": zod.string().nullable(),
+  "status": zod.string(),
+  "legacyRecordCount": zod.number().int(),
+  "departmentCount": zod.number().int()
+})),
+  "page": zod.number().int(),
+  "pageSize": zod.number().int(),
+  "total": zod.number().int()
+})
+
+
+/**
+ * @summary Create a canonical item from immutable legacy records
+ */
+
+
+
+export const CreateCanonicalItemBody = zod.object({
+  "legacyItemIds": zod.array(zod.string()).min(1),
+  "nomenclature": zod.string().nullish(),
+  "unit": zod.string().nullish(),
+  "pvms": zod.string().nullish(),
+  "niv": zod.string().nullish()
+})
+
+export const CreateCanonicalItemResponse = zod.object({
+  "id": zod.string(),
+  "canonicalId": zod.string(),
+  "nomenclature": zod.string().nullable(),
+  "unit": zod.string().nullable(),
+  "pvms": zod.string().nullable(),
+  "niv": zod.string().nullable(),
+  "status": zod.string(),
+  "legacyRecordCount": zod.number().int(),
+  "departmentCount": zod.number().int()
+}).and(zod.object({
+  "legacyRecords": zod.array(zod.object({
+  "id": zod.string(),
+  "importId": zod.string(),
+  "sourceWorksheet": zod.string(),
+  "sourceRow": zod.number().int(),
+  "systemId": zod.string().nullable(),
+  "identifier": zod.string().nullable(),
+  "nomenclature": zod.string().nullable(),
+  "unit": zod.string().nullable(),
+  "previousPvmsMmf": zod.number().nullable(),
+  "currentPvmsMmf": zod.number().nullable(),
+  "previousDglpMmf": zod.number().nullable(),
+  "currentDglpMmf": zod.number().nullable(),
+  "previousEchsMmf": zod.number().nullable(),
+  "currentEchsMmf": zod.number().nullable(),
+  "lpr": zod.string().nullable(),
+  "sourceValues": zod.array(zod.unknown()),
+  "departments": zod.array(zod.object({
+  "name": zod.string(),
+  "pvms": zod.string().nullable(),
+  "dglp": zod.number().nullable(),
+  "echs": zod.number().nullable()
+}))
+})),
+  "vocabularyHistory": zod.array(zod.object({
+  "id": zod.string(),
+  "reviewType": zod.string(),
+  "status": zod.string(),
+  "title": zod.string(),
+  "detail": zod.string()
+}))
+}))
+
+
+/**
+ * @summary Get canonical item detail and lineage
+ */
+export const GetCanonicalItemParams = zod.object({
+  "canonicalItemId": zod.coerce.string()
+})
+
+export const GetCanonicalItemResponse = zod.object({
+  "id": zod.string(),
+  "canonicalId": zod.string(),
+  "nomenclature": zod.string().nullable(),
+  "unit": zod.string().nullable(),
+  "pvms": zod.string().nullable(),
+  "niv": zod.string().nullable(),
+  "status": zod.string(),
+  "legacyRecordCount": zod.number().int(),
+  "departmentCount": zod.number().int()
+}).and(zod.object({
+  "legacyRecords": zod.array(zod.object({
+  "id": zod.string(),
+  "importId": zod.string(),
+  "sourceWorksheet": zod.string(),
+  "sourceRow": zod.number().int(),
+  "systemId": zod.string().nullable(),
+  "identifier": zod.string().nullable(),
+  "nomenclature": zod.string().nullable(),
+  "unit": zod.string().nullable(),
+  "previousPvmsMmf": zod.number().nullable(),
+  "currentPvmsMmf": zod.number().nullable(),
+  "previousDglpMmf": zod.number().nullable(),
+  "currentDglpMmf": zod.number().nullable(),
+  "previousEchsMmf": zod.number().nullable(),
+  "currentEchsMmf": zod.number().nullable(),
+  "lpr": zod.string().nullable(),
+  "sourceValues": zod.array(zod.unknown()),
+  "departments": zod.array(zod.object({
+  "name": zod.string(),
+  "pvms": zod.string().nullable(),
+  "dglp": zod.number().nullable(),
+  "echs": zod.number().nullable()
+}))
+})),
+  "vocabularyHistory": zod.array(zod.object({
+  "id": zod.string(),
+  "reviewType": zod.string(),
+  "status": zod.string(),
+  "title": zod.string(),
+  "detail": zod.string()
+}))
+}))
+
+
+/**
+ * @summary List vocabulary review records
+ */
+export const ListVocabularyReviewsQueryParams = zod.object({
+  "status": zod.enum(['open', 'resolved', 'all']).optional()
+})
+
+export const ListVocabularyReviewsResponseItem = zod.object({
+  "id": zod.string(),
+  "importId": zod.string(),
+  "reviewType": zod.string(),
+  "identifier": zod.string().nullable(),
+  "title": zod.string(),
+  "detail": zod.string(),
+  "status": zod.string(),
+  "decision": zod.string().nullish(),
+  "decisionNote": zod.string().nullish(),
+  "candidateRecords": zod.array(zod.object({
+  "id": zod.string(),
+  "importId": zod.string(),
+  "sourceWorksheet": zod.string(),
+  "sourceRow": zod.number().int(),
+  "systemId": zod.string().nullable(),
+  "identifier": zod.string().nullable(),
+  "nomenclature": zod.string().nullable(),
+  "unit": zod.string().nullable(),
+  "previousPvmsMmf": zod.number().nullable(),
+  "currentPvmsMmf": zod.number().nullable(),
+  "previousDglpMmf": zod.number().nullable(),
+  "currentDglpMmf": zod.number().nullable(),
+  "previousEchsMmf": zod.number().nullable(),
+  "currentEchsMmf": zod.number().nullable(),
+  "lpr": zod.string().nullable(),
+  "sourceValues": zod.array(zod.unknown()),
+  "departments": zod.array(zod.object({
+  "name": zod.string(),
+  "pvms": zod.string().nullable(),
+  "dglp": zod.number().nullable(),
+  "echs": zod.number().nullable()
+}))
+}))
+})
+export const ListVocabularyReviewsResponse = zod.array(ListVocabularyReviewsResponseItem)
+
+
+/**
+ * @summary Record a human vocabulary review decision
+ */
+export const DecideVocabularyReviewParams = zod.object({
+  "reviewId": zod.coerce.string()
+})
+
+export const DecideVocabularyReviewBody = zod.object({
+  "decision": zod.enum(['MERGE', 'KEEP_SEPARATE', 'CORRECT', 'RETIRE', 'CREATE_CANONICAL', 'INVESTIGATE']),
+  "note": zod.string().optional(),
+  "canonicalItemIds": zod.array(zod.string()).optional(),
+  "sourceColumnStart": zod.number().int().optional()
+})
+
+export const DecideVocabularyReviewResponse = zod.object({
+  "id": zod.string(),
+  "importId": zod.string(),
+  "reviewType": zod.string(),
+  "identifier": zod.string().nullable(),
+  "title": zod.string(),
+  "detail": zod.string(),
+  "status": zod.string(),
+  "decision": zod.string().nullish(),
+  "decisionNote": zod.string().nullish(),
+  "candidateRecords": zod.array(zod.object({
+  "id": zod.string(),
+  "importId": zod.string(),
+  "sourceWorksheet": zod.string(),
+  "sourceRow": zod.number().int(),
+  "systemId": zod.string().nullable(),
+  "identifier": zod.string().nullable(),
+  "nomenclature": zod.string().nullable(),
+  "unit": zod.string().nullable(),
+  "previousPvmsMmf": zod.number().nullable(),
+  "currentPvmsMmf": zod.number().nullable(),
+  "previousDglpMmf": zod.number().nullable(),
+  "currentDglpMmf": zod.number().nullable(),
+  "previousEchsMmf": zod.number().nullable(),
+  "currentEchsMmf": zod.number().nullable(),
+  "lpr": zod.string().nullable(),
+  "sourceValues": zod.array(zod.unknown()),
+  "departments": zod.array(zod.object({
+  "name": zod.string(),
+  "pvms": zod.string().nullable(),
+  "dglp": zod.number().nullable(),
+  "echs": zod.number().nullable()
+}))
+}))
+})
 
 

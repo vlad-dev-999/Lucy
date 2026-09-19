@@ -5,6 +5,8 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { DepartmentInput } from './departmentInput';
+import type { LegacyRowInput } from './legacyRowInput';
 import type { PreviewRow } from './previewRow';
 import type { QualityIssue } from './qualityIssue';
 
@@ -23,4 +25,10 @@ export interface ImportInput {
   errors: number;
   previewRows: PreviewRow[];
   issues?: QualityIssue[];
+  legacyRows?: LegacyRowInput[];
+  departments?: DepartmentInput[];
+  /** @nullable */
+  sourceObjectPath?: string | null;
+  /** @nullable */
+  sourceObjectContentType?: string | null;
 }

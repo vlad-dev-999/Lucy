@@ -6,8 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface Department {
-  id: string;
+export interface DepartmentInput {
   name: string;
-  itemCount: number;
+  sourceColumnStart: number;
 }
