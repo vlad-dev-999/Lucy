@@ -598,6 +598,7 @@ router.get("/canonical-items", async (req, res, next) => {
       nomenclature: canonicalItemsTable.nomenclature,
       pvms: canonicalItemsTable.pvms,
       niv: canonicalItemsTable.niv,
+      unit: canonicalItemsTable.unit,
       status: canonicalItemsTable.status,
       legacyRecordCount: sql<number>`(
         select count(*)

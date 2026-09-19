@@ -18,7 +18,7 @@ Stage 1: workbook inspection, validation, review persistence, and baseline statu
 - Immutable baseline status transition: IMPLEMENTED
 - Vocabulary review workflow: IMPLEMENTED — runtime verified through the API and desktop review queue
 - Source workbook byte storage: PLANNED
-- Canonical vocabulary: PLANNED
+- Canonical vocabulary: IMPLEMENTED — searchable, paginated list with server-side sorting and detail view
 - Department workspace: SCAFFOLD
 - MMF editing/history: PLANNED
 - Benchmark prices/forecast: PLANNED
@@ -55,7 +55,7 @@ The `mmf_imports`, `canonical_items`, and `vocabulary_reviews` tables are pushed
 - Uploaded workbook bytes are not yet persisted to App Storage.
 - Preview rows are stored, not the complete source row set.
 - Demo identity and authorization are not production-ready.
-- Canonical vocabulary UI is not yet implemented; the vocabulary review workflow is available for review decisions.
+- Canonical vocabulary list and detail views are implemented; the vocabulary review workflow remains available for review decisions.
 - Export is not implemented.
 
 ## Tests
@@ -77,10 +77,12 @@ Runtime verification completed after managed workflows were restarted: `GET /api
 - `/imports/:id` metadata, findings, preview, and commit control
 - `/departments` detected destinations
 - `/review-queue` vocabulary review workflow
+- `/canonical-vocabulary` searchable, paginated canonical vocabulary
+- `/canonical-vocabulary/:id` canonical item detail and lineage
 
 ## Next Stage
 
-Add protected App Storage source-object persistence, full legacy-row storage with source lineage, and Canonical Vocabulary UI.
+Add protected App Storage source-object persistence and full legacy-row storage with source lineage.
 
 ## Do Not Break
 
@@ -88,4 +90,4 @@ The supplied workbook remains the authoritative legacy contract. PVMS/NIV is not
 
 ## Git Commit
 
-`feat: implement vocabulary review workflow`
+`feat: add canonical vocabulary server-side sorting`

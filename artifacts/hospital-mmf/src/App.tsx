@@ -35,6 +35,7 @@ import {
 import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
 import {
   getGetImportQueryKey,
+  getGetCanonicalItemQueryKey,
   getGetOverviewQueryKey,
   getListImportsQueryKey,
   getListVocabularyReviewsQueryKey,
@@ -612,6 +613,7 @@ const canonicalSortOptions = [
   ['nomenclature', 'Nomenclature'],
   ['pvms', 'PVMS'],
   ['niv', 'NIV'],
+  ['unit', 'Unit'],
   ['status', 'Status'],
   ['legacyRecordCount', 'Legacy records'],
   ['departmentCount', 'Departments'],
@@ -735,7 +737,7 @@ function DetailField({ label, value, mono = false }: { label: string; value: str
 function CanonicalDetailPage() {
   const params = useParams<{ id: string }>();
   const id = params.id ?? '';
-  const detailQuery = useGetCanonicalItem(id, { query: { enabled: Boolean(id) } });
+  const detailQuery = useGetCanonicalItem(id, { query: { queryKey: getGetCanonicalItemQueryKey(id), enabled: Boolean(id) } });
   if (detailQuery.isLoading) return <div className="mx-auto max-w-[1440px] rise-in"><div className="skeleton mb-5 h-4 w-44 rounded" /><div className="skeleton h-12 w-96 rounded" /><div className="mt-7 grid gap-4 sm:grid-cols-4">{Array.from({ length: 4 }).map((_, index) => <div className="skeleton h-24 rounded-xl" key={index} />)}</div><div className="skeleton mt-6 h-72 rounded-xl" /></div>;
   if (detailQuery.isError || !detailQuery.data) return <div className="mx-auto max-w-[1440px] rise-in"><Link href="/canonical-vocabulary" className="mb-6 inline-flex items-center gap-2 text-xs font-bold text-[#315d7f]" data-testid="link-back-canonical-vocabulary"><ArrowLeft size={14} /> Canonical vocabulary</Link><QueryState error={detailQuery.error} onRetry={() => void detailQuery.refetch()} label="canonical item" /></div>;
 

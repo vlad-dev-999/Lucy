@@ -147,7 +147,7 @@ paths:
           in: query
           schema:
             type: string
-            enum: [canonicalId, nomenclature, pvms, niv, status, legacyRecordCount, departmentCount]
+            enum: [canonicalId, nomenclature, pvms, niv, unit, status, legacyRecordCount, departmentCount]
             default: canonicalId
         - name: direction
           in: query

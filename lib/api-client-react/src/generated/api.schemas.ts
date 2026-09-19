@@ -391,6 +391,7 @@ export const ListCanonicalItemsSort = {
   nomenclature: 'nomenclature',
   pvms: 'pvms',
   niv: 'niv',
+  unit: 'unit',
   status: 'status',
   legacyRecordCount: 'legacyRecordCount',
   departmentCount: 'departmentCount',
