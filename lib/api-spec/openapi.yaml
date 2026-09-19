@@ -143,6 +143,18 @@ paths:
           in: query
           schema:
             type: string
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [canonicalId, nomenclature, pvms, niv, status, legacyRecordCount, departmentCount]
+            default: canonicalId
+        - name: direction
+          in: query
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: asc
         - name: page
           in: query
           schema:

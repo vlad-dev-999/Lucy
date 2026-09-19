@@ -370,6 +370,8 @@ export interface Overview {
 export type ListCanonicalItemsParams = {
 search?: string;
 status?: string;
+sort?: ListCanonicalItemsSort;
+direction?: ListCanonicalItemsDirection;
 /**
  * @minimum 1
  */
@@ -380,6 +382,27 @@ page?: number;
  */
 pageSize?: number;
 };
+
+export type ListCanonicalItemsSort = typeof ListCanonicalItemsSort[keyof typeof ListCanonicalItemsSort];
+
+
+export const ListCanonicalItemsSort = {
+  canonicalId: 'canonicalId',
+  nomenclature: 'nomenclature',
+  pvms: 'pvms',
+  niv: 'niv',
+  status: 'status',
+  legacyRecordCount: 'legacyRecordCount',
+  departmentCount: 'departmentCount',
+} as const;
+
+export type ListCanonicalItemsDirection = typeof ListCanonicalItemsDirection[keyof typeof ListCanonicalItemsDirection];
+
+
+export const ListCanonicalItemsDirection = {
+  asc: 'asc',
+  desc: 'desc',
+} as const;
 
 export type ListVocabularyReviewsParams = {
 search?: string;

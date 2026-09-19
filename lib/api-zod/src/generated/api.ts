@@ -280,6 +280,8 @@ export const CommitImportResponse = zod.object({
 /**
  * @summary Search canonical vocabulary
  */
+export const listCanonicalItemsQuerySortDefault = `canonicalId`;
+export const listCanonicalItemsQueryDirectionDefault = `asc`;
 export const listCanonicalItemsQueryPageDefault = 1;
 
 export const listCanonicalItemsQueryPageSizeDefault = 25;
@@ -290,6 +292,8 @@ export const listCanonicalItemsQueryPageSizeMax = 100;
 export const ListCanonicalItemsQueryParams = zod.object({
   "search": zod.coerce.string().optional(),
   "status": zod.coerce.string().optional(),
+  "sort": zod.enum(['canonicalId', 'nomenclature', 'pvms', 'niv', 'status', 'legacyRecordCount', 'departmentCount']).default(listCanonicalItemsQuerySortDefault),
+  "direction": zod.enum(['asc', 'desc']).default(listCanonicalItemsQueryDirectionDefault),
   "page": zod.coerce.number().int().min(1).default(listCanonicalItemsQueryPageDefault),
   "pageSize": zod.coerce.number().int().min(1).max(listCanonicalItemsQueryPageSizeMax).default(listCanonicalItemsQueryPageSizeDefault)
 })

@@ -5,10 +5,14 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { ListCanonicalItemsDirection } from './listCanonicalItemsDirection';
+import type { ListCanonicalItemsSort } from './listCanonicalItemsSort';
 
 export type ListCanonicalItemsParams = {
 search?: string;
 status?: string;
+sort?: ListCanonicalItemsSort;
+direction?: ListCanonicalItemsDirection;
 /**
  * @minimum 1
  */

@@ -593,12 +593,31 @@ router.get("/canonical-items", async (req, res, next) => {
       );
     }
     const where = filters.length ? and(...filters) : undefined;
+    const sortColumn = {
+      canonicalId: canonicalItemsTable.canonicalNumber,
+      nomenclature: canonicalItemsTable.nomenclature,
+      pvms: canonicalItemsTable.pvms,
+      niv: canonicalItemsTable.niv,
+      status: canonicalItemsTable.status,
+      legacyRecordCount: sql<number>`(
+        select count(*)
+        from legacy_canonical_lineage lcl
+        where lcl.canonical_item_id = ${canonicalItemsTable.id}
+      )`,
+      departmentCount: sql<number>`(
+        select count(distinct lid.department_id)
+        from legacy_canonical_lineage lcl
+        inner join legacy_item_departments lid on lid.legacy_item_id = lcl.legacy_item_id
+        where lcl.canonical_item_id = ${canonicalItemsTable.id}
+      )`,
+    }[params.sort];
+    const order = params.direction === "asc" ? asc(sortColumn) : desc(sortColumn);
     const [rows, count] = await Promise.all([
       db
         .select()
         .from(canonicalItemsTable)
         .where(where)
-        .orderBy(desc(canonicalItemsTable.updatedAt))
+        .orderBy(order)
         .limit(params.pageSize)
         .offset((params.page - 1) * params.pageSize),
       db.select({ total: sql<number>`count(*)` }).from(canonicalItemsTable).where(where),

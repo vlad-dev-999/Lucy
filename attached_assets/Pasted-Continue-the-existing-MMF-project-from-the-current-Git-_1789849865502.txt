@@ -1,0 +1,228 @@
+Continue the existing MMF project from the current Git state.
+
+The Vocabulary Review Workflow is COMPLETE and runtime-verified.
+
+Verified:
+- database schema synchronized
+- canonical_items exists
+- vocabulary_reviews exists
+- review API returns 200
+- /review-queue renders populated records
+- browser console has no errors
+- commit exists:
+  feat: implement vocabulary review workflow
+
+DO NOT redo or audit that work.
+
+==================================================
+NEXT TICKET
+==================================================
+
+STAGE 2 — CANONICAL VOCABULARY UI
+
+Implement ONLY the Canonical Vocabulary screen and its detail view.
+
+The backend/data layer already exists.
+Use the existing Canonical Item, Legacy Item, and lineage models/API.
+
+Do not redesign the application.
+
+==================================================
+CANONICAL VOCABULARY LIST
+==================================================
+
+Create/complete the desktop Canonical Vocabulary screen.
+
+Required:
+
+- search
+- filtering
+- sorting
+- pagination
+- clear status
+- row actions
+
+Primary columns:
+
+- Canonical ID
+- Nomenclature
+- PVMS
+- NIV
+- Unit
+- Legacy Records
+- Departments
+- Status
+- Actions
+
+Search should support useful vocabulary fields, not just Canonical ID.
+
+Filters should use the existing data/status values.
+
+Use server-side querying where the existing architecture supports it.
+
+Do not load the entire vocabulary dataset into the browser unnecessarily.
+
+==================================================
+CANONICAL DETAIL
+==================================================
+
+Clicking a canonical item should show:
+
+- Canonical ID
+- nomenclature
+- specification
+- unit
+- PVMS
+- NIV
+- status
+- departments
+- linked legacy records
+- source import
+- worksheet
+- source row
+- lineage
+- review/decision history
+
+The detail view must make the relationship clear:
+
+CANONICAL ITEM
+    ↓
+LEGACY RECORDS
+
+Do not expose a misleading impression that canonicalization erased the original records.
+
+==================================================
+LINEAGE / HISTORY
+==================================================
+
+Show the existing lineage and review metadata.
+
+Where available show:
+
+- decision
+- reviewer
+- reviewed timestamp
+- reason
+
+Do not implement new review actions here.
+
+The Vocabulary Review screen remains responsible for review decisions.
+
+==================================================
+UI STANDARD
+==================================================
+
+Desktop PC only.
+
+Use the existing application's design system.
+
+This should be a polished professional hospital governance interface.
+
+Use:
+
+- dense but readable tables
+- clear page hierarchy
+- useful filters
+- restrained status badges
+- appropriate detail panels/dialogs
+- loading states
+- empty states
+- error states
+
+Do not create generic CRUD screens.
+
+Do not redesign the Command Centre.
+
+Do not add mobile layouts.
+
+==================================================
+DO NOT TOUCH
+==================================================
+
+Do NOT work on:
+
+- Vocabulary Review workflow
+- Department workspace
+- MMF editing
+- Benchmark prices
+- RBAC
+- Freeze/release
+- Amendments
+- Exact XLSX export
+- later stages
+
+Do not modify the data model unless the Canonical Vocabulary screen genuinely cannot function using the existing model/API.
+
+If an API endpoint is missing, add only the minimal endpoint required for this screen.
+
+==================================================
+TESTING
+==================================================
+
+Run only targeted checks:
+
+- relevant API test(s)
+- relevant UI/typecheck
+- production build
+
+Then verify the actual desktop screen in the running application.
+
+Confirm:
+- list loads
+- search works
+- filters work
+- pagination works
+- detail opens
+- lineage displays
+- no browser console errors
+
+Do not perform a repository-wide audit.
+
+==================================================
+BATON
+==================================================
+
+Update the CURRENT project-state baton.
+
+Do not create a new state version merely because this is a new Replit instance.
+
+Record:
+
+COMPLETED:
+- Canonical Vocabulary list
+- search/filter/sort/pagination
+- canonical detail
+- lineage/history display
+
+PARTIAL:
+- anything genuinely incomplete
+
+NEXT TICKET:
+State the next concrete Stage 2 task.
+
+TESTS:
+Record actual results.
+
+GIT:
+Record the final commit hash.
+
+==================================================
+COMMIT
+==================================================
+
+When complete:
+
+git add -A
+git commit -m "feat: add canonical vocabulary interface"
+
+==================================================
+CRITICAL
+==================================================
+
+Do not spend credits reading documentation or auditing unrelated code.
+
+The data layer and review workflow are already implemented and verified.
+
+Open the existing canonical/relevant UI and API files and start coding immediately.
+
+START NOW.

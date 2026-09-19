@@ -8,6 +8,7 @@ import {
   ArrowRight,
   BadgeCheck,
   Bell,
+  BookOpen,
   CalendarClock,
   Check,
   CheckCircle2,
@@ -40,6 +41,7 @@ import {
   useDecideVocabularyReview,
   useCommitImport,
   useCreateImport,
+  useGetCanonicalItem,
   useGetImport,
   useGetOverview,
   useListCanonicalItems,
@@ -47,7 +49,7 @@ import {
   useListImports,
   useListVocabularyReviews,
 } from '@workspace/api-client-react';
-import type { CanonicalItem, Department, DepartmentInput, ImportSummary, LegacyItem, LegacyRowInput, ListVocabularyReviewsParams, PreviewRow, QualityIssue, VocabularyDecisionInput, VocabularyDecisionInputDecision, VocabularyReview } from '@workspace/api-client-react';
+import type { CanonicalItem, CanonicalItemDetail, Department, DepartmentInput, ImportSummary, LegacyItem, LegacyRowInput, ListCanonicalItemsParams, ListVocabularyReviewsParams, PreviewRow, QualityIssue, VocabularyDecisionInput, VocabularyDecisionInputDecision, VocabularyReview } from '@workspace/api-client-react';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -60,6 +62,7 @@ const navItems = [
   { href: '/imports', label: 'Import review', icon: FileSpreadsheet },
   { href: '/departments', label: 'Departments', icon: Columns3 },
   { href: '/review-queue', label: 'Review queue', icon: ListFilter },
+  { href: '/canonical-vocabulary', label: 'Canonical vocabulary', icon: BookOpen },
 ];
 
 function formatDate(value?: string | null, withTime = false) {
@@ -604,6 +607,201 @@ function DepartmentCard({ department, index }: { department: Department; index: 
   return <div className="panel-shadow group rounded-xl border border-slate-200/90 bg-white p-5 transition-transform duration-200 hover:-translate-y-0.5" data-testid={`card-department-${department.id}`}><div className="flex items-start justify-between gap-4"><span className={`grid size-10 place-items-center rounded-xl font-mono text-xs font-bold ${palettes[index % palettes.length]}`}>{initials(department.name)}</span><Badge tone="success"><CheckCircle2 size={12} /> Detected</Badge></div><div className="mt-5 text-sm font-bold text-[#1e3447]">{department.name}</div><div className="mt-1 text-xs text-slate-500">Source column {department.sourceColumnStart}</div><div className="mt-5 flex items-end justify-between border-t border-slate-100 pt-4"><div><div className="font-mono text-2xl font-bold tracking-[-0.07em] text-[#1e3447]">{formatNumber(department.itemCount)}</div><div className="text-[10px] uppercase tracking-[0.1em] text-slate-400">Items mapped</div></div><ArrowRight className="text-slate-300 transition-transform group-hover:translate-x-1" size={17} /></div></div>;
 }
 
+const canonicalSortOptions = [
+  ['canonicalId', 'Canonical ID'],
+  ['nomenclature', 'Nomenclature'],
+  ['pvms', 'PVMS'],
+  ['niv', 'NIV'],
+  ['status', 'Status'],
+  ['legacyRecordCount', 'Legacy records'],
+  ['departmentCount', 'Departments'],
+] as const;
+
+function canonicalStatusTone(status: string): 'neutral' | 'success' | 'warning' {
+  if (status === 'active') return 'success';
+  if (status === 'retired') return 'neutral';
+  return 'warning';
+}
+
+function CanonicalVocabularyPage() {
+  const [search, setSearch] = useState('');
+  const [status, setStatus] = useState('');
+  const [sort, setSort] = useState<NonNullable<ListCanonicalItemsParams['sort']>>('canonicalId');
+  const [direction, setDirection] = useState<NonNullable<ListCanonicalItemsParams['direction']>>('asc');
+  const [page, setPage] = useState(1);
+  const pageSize = 25;
+  const params = useMemo(() => ({
+    search: search.trim() || undefined,
+    status: status || undefined,
+    sort,
+    direction,
+    page,
+    pageSize,
+  }), [direction, page, search, sort, status]);
+  const canonicalQuery = useListCanonicalItems(params);
+  const data = canonicalQuery.data;
+  const totalPages = Math.max(1, Math.ceil((data?.total ?? 0) / pageSize));
+
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
+
+  return <div className="mx-auto max-w-[1440px] rise-in">
+    <PageHeading
+      eyebrow="Governed reference"
+      title="Canonical vocabulary"
+      description="Review the governed vocabulary while keeping every immutable legacy source record visible and traceable."
+      action={<Badge tone="info"><BookOpen size={12} /> {formatNumber(data?.total)} canonical items</Badge>}
+    />
+    <SectionCard
+      title="Canonical items"
+      eyebrow="Searchable governed vocabulary"
+      action={<span className="font-mono text-[10px] text-slate-400">Page {data?.page ?? page} of {totalPages}</span>}
+    >
+      <div className="grid gap-3 border-b border-slate-100 bg-[#fbfdfd] p-4 lg:grid-cols-[1fr_170px_180px_140px]">
+        <label className="relative block text-[10px] font-bold uppercase tracking-[0.1em] text-slate-400">
+          <Search className="absolute left-3 top-8 text-slate-400" size={14} />
+          <span className="sr-only">Search canonical vocabulary</span>
+          <input
+            value={search}
+            onChange={(event) => { setSearch(event.target.value); setPage(1); }}
+            placeholder="Search nomenclature, PVMS, or NIV"
+            className="mt-1 h-10 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 text-xs font-normal normal-case tracking-normal text-slate-700 outline-none focus:ring-2 focus:ring-[#9ed8c7]"
+            data-testid="input-search-canonical-vocabulary"
+          />
+        </label>
+        <label className="text-[10px] font-bold uppercase tracking-[0.1em] text-slate-400">
+          Status
+          <select value={status} onChange={(event) => { setStatus(event.target.value); setPage(1); }} className="mt-1 h-10 w-full rounded-lg border border-slate-200 bg-white px-2 text-xs font-normal normal-case tracking-normal text-slate-700 outline-none focus:ring-2 focus:ring-[#9ed8c7]" data-testid="select-canonical-status">
+            <option value="">All statuses</option>
+            <option value="active">Active</option>
+            <option value="retired">Retired</option>
+          </select>
+        </label>
+        <label className="text-[10px] font-bold uppercase tracking-[0.1em] text-slate-400">
+          Sort by
+          <select value={sort} onChange={(event) => { setSort(event.target.value as NonNullable<ListCanonicalItemsParams['sort']>); setPage(1); }} className="mt-1 h-10 w-full rounded-lg border border-slate-200 bg-white px-2 text-xs font-normal normal-case tracking-normal text-slate-700 outline-none focus:ring-2 focus:ring-[#9ed8c7]" data-testid="select-canonical-sort">
+            {canonicalSortOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+          </select>
+        </label>
+        <label className="text-[10px] font-bold uppercase tracking-[0.1em] text-slate-400">
+          Order
+          <select value={direction} onChange={(event) => { setDirection(event.target.value as NonNullable<ListCanonicalItemsParams['direction']>); setPage(1); }} className="mt-1 h-10 w-full rounded-lg border border-slate-200 bg-white px-2 text-xs font-normal normal-case tracking-normal text-slate-700 outline-none focus:ring-2 focus:ring-[#9ed8c7]" data-testid="select-canonical-direction">
+            <option value="asc">Ascending</option>
+            <option value="desc">Descending</option>
+          </select>
+        </label>
+      </div>
+      {canonicalQuery.isLoading ? <div className="space-y-3 p-5"><div className="skeleton h-14 rounded" /><div className="skeleton h-14 rounded" /><div className="skeleton h-14 rounded" /></div>
+        : canonicalQuery.isError ? <div className="p-5"><QueryState error={canonicalQuery.error} onRetry={() => void canonicalQuery.refetch()} label="canonical vocabulary" /></div>
+          : !data?.items.length ? <EmptyState title="No canonical items found" detail={search || status ? 'Try a different search or status filter.' : 'Canonical items will appear after reviewed legacy records are governed.'} />
+            : <div className="overflow-x-auto">
+              <table className="w-full min-w-[1060px] text-left" data-testid="table-canonical-items">
+                <thead className="bg-[#f8fbfb]">
+                  <tr className="border-b border-slate-100">
+                    {['Canonical ID', 'Nomenclature', 'PVMS', 'NIV', 'Unit', 'Legacy records', 'Departments', 'Status', 'Actions'].map((header) => <th key={header} className="px-4 py-3 font-mono text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">{header}</th>)}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {data.items.map((item) => <tr key={item.id} className="text-xs transition-colors hover:bg-[#fbfdfd]" data-testid={`canonical-row-${item.id}`}>
+                    <td className="px-4 py-3 font-mono text-[11px] font-bold text-[#315d7f]"><Link href={`/canonical-vocabulary/${item.id}`} className="hover:underline" data-testid={`link-canonical-${item.id}`}>{item.canonicalId}</Link></td>
+                    <td className="max-w-[300px] truncate px-4 py-3 font-semibold text-[#1e3447]" title={item.nomenclature ?? undefined}>{item.nomenclature ?? '—'}</td>
+                    <td className="px-4 py-3 font-mono text-[11px] text-slate-600">{item.pvms ?? '—'}</td>
+                    <td className="px-4 py-3 font-mono text-[11px] text-slate-600">{item.niv ?? '—'}</td>
+                    <td className="px-4 py-3 text-slate-500">{item.unit ?? '—'}</td>
+                    <td className="px-4 py-3 font-mono text-[11px] text-slate-600">{formatNumber(item.legacyRecordCount)}</td>
+                    <td className="px-4 py-3 font-mono text-[11px] text-slate-600">{formatNumber(item.departmentCount)}</td>
+                    <td className="px-4 py-3"><Badge tone={canonicalStatusTone(item.status)}>{item.status}</Badge></td>
+                    <td className="px-4 py-3"><Link href={`/canonical-vocabulary/${item.id}`} className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[11px] font-bold text-[#315d7f] hover:bg-[#f1f7f7]" data-testid={`button-open-canonical-${item.id}`}>Open <ArrowRight size={12} /></Link></td>
+                  </tr>)}
+                </tbody>
+              </table>
+            </div>}
+      <div className="flex items-center justify-between border-t border-slate-100 px-5 py-3">
+        <span className="text-[11px] text-slate-500">Showing {data?.items.length ?? 0} of {formatNumber(data?.total)} canonical items</span>
+        <div className="flex items-center gap-2">
+          <button disabled={page <= 1} onClick={() => setPage((current) => Math.max(1, current - 1))} className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 disabled:cursor-not-allowed disabled:opacity-40" data-testid="button-canonical-previous"><ArrowLeft size={13} className="mr-1 inline" />Previous</button>
+          <button disabled={page >= totalPages} onClick={() => setPage((current) => Math.min(totalPages, current + 1))} className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 disabled:cursor-not-allowed disabled:opacity-40" data-testid="button-canonical-next">Next<ArrowRight size={13} className="ml-1 inline" /></button>
+        </div>
+      </div>
+    </SectionCard>
+  </div>;
+}
+
+function DetailField({ label, value, mono = false }: { label: string; value: string | number | null | undefined; mono?: boolean }) {
+  return <div className="rounded-lg border border-slate-100 bg-[#fbfdfd] p-3"><div className="font-mono text-[9px] font-bold uppercase tracking-[0.12em] text-slate-400">{label}</div><div className={`mt-1 text-xs font-semibold text-[#1e3447] ${mono ? 'font-mono' : ''}`}>{value === null || value === undefined || value === '' ? '—' : value}</div></div>;
+}
+
+function CanonicalDetailPage() {
+  const params = useParams<{ id: string }>();
+  const id = params.id ?? '';
+  const detailQuery = useGetCanonicalItem(id, { query: { enabled: Boolean(id) } });
+  if (detailQuery.isLoading) return <div className="mx-auto max-w-[1440px] rise-in"><div className="skeleton mb-5 h-4 w-44 rounded" /><div className="skeleton h-12 w-96 rounded" /><div className="mt-7 grid gap-4 sm:grid-cols-4">{Array.from({ length: 4 }).map((_, index) => <div className="skeleton h-24 rounded-xl" key={index} />)}</div><div className="skeleton mt-6 h-72 rounded-xl" /></div>;
+  if (detailQuery.isError || !detailQuery.data) return <div className="mx-auto max-w-[1440px] rise-in"><Link href="/canonical-vocabulary" className="mb-6 inline-flex items-center gap-2 text-xs font-bold text-[#315d7f]" data-testid="link-back-canonical-vocabulary"><ArrowLeft size={14} /> Canonical vocabulary</Link><QueryState error={detailQuery.error} onRetry={() => void detailQuery.refetch()} label="canonical item" /></div>;
+
+  const item: CanonicalItemDetail = detailQuery.data;
+  const departments = Array.from(new Set(item.legacyRecords.flatMap((record) => record.departments.map((department) => department.name))));
+  const specifications = Array.from(new Set(item.legacyRecords.map((record) => record.specification).filter((value): value is string => Boolean(value))));
+
+  return <div className="mx-auto max-w-[1440px] rise-in">
+    <Link href="/canonical-vocabulary" className="mb-6 inline-flex items-center gap-2 text-xs font-bold text-[#315d7f] hover:text-[#244c65]" data-testid="link-back-canonical-vocabulary"><ArrowLeft size={14} /> Canonical vocabulary</Link>
+    <PageHeading eyebrow="Canonical item detail" title={item.canonicalId} description="Governed vocabulary with preserved legacy source lineage and review history." action={<Badge tone={canonicalStatusTone(item.status)}>{item.status}</Badge>} />
+    <div className="grid gap-4 sm:grid-cols-4">
+      <MetricCard label="Legacy records" value={formatNumber(item.legacyRecordCount)} detail="Preserved source records" icon={FileText} tone="navy" />
+      <MetricCard label="Departments" value={formatNumber(item.departmentCount)} detail="Source destinations" icon={Columns3} tone="mint" />
+      <MetricCard label="Review history" value={formatNumber(item.vocabularyHistory.length)} detail="Linked vocabulary reviews" icon={ListFilter} tone="amber" />
+      <MetricCard label="Status" value={item.status} detail="Canonical lifecycle state" icon={BookOpen} tone={item.status === 'active' ? 'mint' : 'rose'} />
+    </div>
+    <SectionCard title="Canonical item" eyebrow="Governed reference values" className="mt-6">
+      <div className="grid gap-3 p-5 md:grid-cols-3">
+        <DetailField label="Canonical ID" value={item.canonicalId} mono />
+        <DetailField label="Nomenclature" value={item.nomenclature} />
+        <DetailField label="Specification" value={specifications.length === 1 ? specifications[0] : specifications.length ? `${specifications.length} source specifications` : null} />
+        <DetailField label="Unit" value={item.unit} />
+        <DetailField label="PVMS" value={item.pvms} mono />
+        <DetailField label="NIV" value={item.niv} mono />
+        <DetailField label="Departments" value={departments.length ? departments.join(', ') : null} />
+        <DetailField label="Status" value={item.status} />
+      </div>
+      {specifications.length > 1 && <div className="border-t border-slate-100 px-5 py-3 text-[11px] text-slate-500">Source specifications remain visible in the legacy records below because canonical items do not overwrite their original descriptions.</div>}
+    </SectionCard>
+    <div className="mt-6 grid gap-6 lg:grid-cols-[1.35fr_.65fr]">
+      <SectionCard title="Legacy records" eyebrow="Immutable source lineage">
+        <div className="border-b border-slate-100 bg-[#f8fbfb] px-5 py-3 text-xs text-slate-500">Every source row remains attached to this canonical item. Canonicalization does not erase or replace the legacy record.</div>
+        {!item.legacyRecords.length ? <EmptyState title="No linked legacy records" detail="This canonical item has no source lineage records." /> : <div className="overflow-x-auto">
+          <table className="w-full min-w-[920px] text-left" data-testid="table-canonical-lineage">
+            <thead className="bg-white"><tr className="border-b border-slate-100">{['Source', 'Identifier', 'Nomenclature', 'Specification', 'Unit', 'PVMS', 'NIV', 'Departments'].map((header) => <th key={header} className="px-3 py-3 font-mono text-[9px] font-bold uppercase tracking-[0.1em] text-slate-400">{header}</th>)}</tr></thead>
+            <tbody className="divide-y divide-slate-100">{item.legacyRecords.map((record) => <tr key={record.id} className="align-top text-[11px]" data-testid={`lineage-record-${record.id}`}>
+              <td className="whitespace-nowrap px-3 py-3 font-mono text-slate-500">{record.sourceWorksheet} · row {record.sourceRow}<div className="mt-1 text-[10px] text-slate-400">{record.importId}</div></td>
+              <td className="px-3 py-3 font-mono font-bold text-[#315d7f]">{record.identifier ?? '—'}</td>
+              <td className="max-w-[220px] px-3 py-3 font-semibold text-[#1e3447]">{record.nomenclature ?? '—'}</td>
+              <td className="max-w-[220px] px-3 py-3 text-slate-600">{record.specification ?? '—'}</td>
+              <td className="px-3 py-3 text-slate-500">{record.unit ?? '—'}</td>
+              <td className="px-3 py-3 font-mono text-slate-600">{record.pvms ?? '—'}</td>
+              <td className="px-3 py-3 font-mono text-slate-600">{record.niv ?? '—'}</td>
+              <td className="max-w-[180px] px-3 py-3 text-slate-600">{record.departments.length ? record.departments.map((department) => department.name).join(', ') : '—'}</td>
+            </tr>)}</tbody>
+          </table>
+        </div>}
+      </SectionCard>
+      <div className="space-y-6">
+        <SectionCard title="Lineage" eyebrow="Canonical item → legacy records">
+          <div className="p-5">
+            <div className="rounded-lg border border-[#bdcfdf] bg-[#f7fafc] p-4">
+              <div className="flex items-center gap-3"><span className="grid size-9 place-items-center rounded-lg bg-[#dcebf3] text-[#315d7f]"><BookOpen size={17} /></span><div><div className="font-mono text-[10px] font-bold uppercase tracking-[0.12em] text-[#315d7f]">Canonical item</div><div className="mt-1 text-sm font-bold text-[#1e3447]">{item.canonicalId}</div></div></div>
+              <div className="ml-4 h-7 border-l border-dashed border-[#8eafbf]" />
+              <div className="flex items-center gap-3"><span className="grid size-9 place-items-center rounded-lg bg-[#edf8f3] text-[#28725e]"><FileText size={17} /></span><div><div className="font-mono text-[10px] font-bold uppercase tracking-[0.12em] text-[#28725e]">Legacy records</div><div className="mt-1 text-sm font-bold text-[#1e3447]">{formatNumber(item.legacyRecords.length)} preserved source rows</div></div></div>
+            </div>
+          </div>
+        </SectionCard>
+        <SectionCard title="Review history" eyebrow="Linked decisions and findings">
+          {!item.vocabularyHistory.length ? <EmptyState title="No review history" detail="No vocabulary review records are linked to this canonical item." /> : <div className="divide-y divide-slate-100">{item.vocabularyHistory.map((review) => <div key={review.id} className="px-5 py-4" data-testid={`history-${review.id}`}><div className="flex items-center justify-between gap-3"><Badge tone={review.status === 'resolved' ? 'success' : 'warning'}>{review.status}</Badge><span className="font-mono text-[10px] text-slate-400">{review.reviewType}</span></div><div className="mt-2 text-xs font-bold text-[#1e3447]">{review.title}</div><p className="mt-1 text-[11px] leading-relaxed text-slate-500">{review.detail}</p></div>)}</div>}
+        </SectionCard>
+      </div>
+    </div>
+  </div>;
+}
+
 const reviewTypes = [
   'EXACT_DUPLICATE',
   'PROBABLE_DUPLICATE',
@@ -770,7 +968,7 @@ function ReviewQueuePage() {
 }
 
 function Router() {
-  return <ErrorRouted><Switch><Route path="/" component={OverviewPage} /><Route path="/imports" component={ImportsPage} /><Route path="/imports/:id" component={ImportDetailPage} /><Route path="/departments" component={DepartmentsPage} /><Route path="/review-queue" component={ReviewQueuePage} /><Route component={NotFound} /></Switch></ErrorRouted>;
+  return <ErrorRouted><Switch><Route path="/" component={OverviewPage} /><Route path="/imports" component={ImportsPage} /><Route path="/imports/:id" component={ImportDetailPage} /><Route path="/departments" component={DepartmentsPage} /><Route path="/review-queue" component={ReviewQueuePage} /><Route path="/canonical-vocabulary/:id" component={CanonicalDetailPage} /><Route path="/canonical-vocabulary" component={CanonicalVocabularyPage} /><Route component={NotFound} /></Switch></ErrorRouted>;
 }
 
 function ErrorRouted({ children }: { children: React.ReactNode }) {
