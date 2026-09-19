@@ -6,10 +6,10 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { CanonicalItem } from './canonicalItem';
+import type { CanonicalItemDetailLegacyRecord } from './canonicalItemDetailLegacyRecord';
 import type { CanonicalItemDetailVocabularyHistoryItem } from './canonicalItemDetailVocabularyHistoryItem';
-import type { LegacyItem } from './legacyItem';
 
 export type CanonicalItemDetail = CanonicalItem & {
-  legacyRecords: LegacyItem[];
+  legacyRecords: CanonicalItemDetailLegacyRecord[];
   vocabularyHistory: CanonicalItemDetailVocabularyHistoryItem[];
 };

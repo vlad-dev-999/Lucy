@@ -1,0 +1,163 @@
+Continue the existing MMF project from the current Git state.
+
+DO NOT audit the repository.
+DO NOT read the documentation.
+DO NOT redesign anything.
+DO NOT touch the Canonical Vocabulary list.
+
+The previous agent has already inspected the current implementation and established:
+
+- Canonical Vocabulary list is COMPLETE.
+- Search works.
+- Filtering works.
+- Pagination works.
+- Server-side sorting works.
+- The remaining gap is ONLY Canonical Item DETAIL TRACEABILITY.
+
+==================================================
+YOUR ONLY TASK
+==================================================
+
+Complete the Canonical Item detail view so it exposes the existing lineage/review information.
+
+The existing detail API already returns canonical item and some lineage data.
+
+The previous agent identified that the response currently omits:
+
+- review decision
+- reviewer
+- review timestamp
+- reason
+
+Add those fields to the existing detail API response using the EXISTING database fields/models.
+
+Do not create a new data model.
+
+Do not change the review workflow.
+
+Do not change the canonical list.
+
+==================================================
+DETAIL VIEW
+==================================================
+
+Ensure the detail page displays:
+
+CANONICAL ITEM
+
+- Canonical ID
+- nomenclature
+- specification
+- unit
+- PVMS
+- NIV
+- status
+
+LEGACY LINEAGE
+
+For each linked legacy record, show as available:
+
+- identifier
+- nomenclature
+- specification
+- unit
+- PVMS
+- NIV
+- DGLP
+- ECHS
+- department
+- import
+- worksheet
+- source row
+
+REVIEW / DECISION HISTORY
+
+Show:
+
+- decision
+- reviewer
+- review timestamp
+- reason
+
+Make the relationship visually clear:
+
+Canonical Item
+    ↓
+Legacy Records
+    ↓
+Original Import / Source Row
+
+The purpose is traceability.
+
+Do not imply that canonicalization deleted or replaced the original legacy record.
+
+==================================================
+IMPLEMENTATION RULE
+==================================================
+
+Use the existing API/schema/client architecture.
+
+Make the smallest necessary changes.
+
+If generated API types/client code must be regenerated, do that.
+
+Do not refactor unrelated code.
+
+==================================================
+VERIFICATION
+==================================================
+
+Run only:
+
+- API typecheck
+- frontend typecheck
+- production build
+
+Then verify the canonical detail page in the running browser.
+
+Confirm:
+- detail loads
+- legacy records appear
+- review decision appears
+- reviewer appears
+- timestamp appears
+- reason appears
+- source lineage appears
+- browser console has no application errors
+
+Do not perform a repository-wide audit.
+
+==================================================
+BATON
+==================================================
+
+Update the CURRENT project-state baton with:
+
+COMPLETED:
+Canonical Vocabulary interface and detail traceability.
+
+REMAINING STAGE 2:
+Only genuinely unfinished work.
+
+NEXT:
+If Stage 2 is now functionally complete, identify Stage 3:
+
+Departments
+→ Department Item Assignments
+→ Department Workspace
+→ MMF Editing
+→ DGLP/ECHS MMF
+→ Revision History
+
+Record actual tests and verification.
+
+==================================================
+COMMIT
+==================================================
+
+When verified:
+
+git add -A
+git commit -m "feat: complete canonical vocabulary traceability"
+
+START CODING IMMEDIATELY.

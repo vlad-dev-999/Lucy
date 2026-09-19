@@ -204,7 +204,32 @@ async function toCanonicalDetail(canonical: typeof canonicalItemsTable.$inferSel
     .select({ legacyItemId: legacyCanonicalLineageTable.legacyItemId })
     .from(legacyCanonicalLineageTable)
     .where(eq(legacyCanonicalLineageTable.canonicalItemId, canonical.id));
+  const lineageDetails = await db
+    .select({
+      legacyItemId: legacyCanonicalLineageTable.legacyItemId,
+      relationship: legacyCanonicalLineageTable.relationship,
+      decision: legacyCanonicalLineageTable.decision,
+      reviewer: legacyCanonicalLineageTable.reviewer,
+      reviewedAt: legacyCanonicalLineageTable.reviewedAt,
+      reason: legacyCanonicalLineageTable.reason,
+    })
+    .from(legacyCanonicalLineageTable)
+    .where(eq(legacyCanonicalLineageTable.canonicalItemId, canonical.id));
   const legacyRecords = await getLegacyRecords(lineage.map((item) => item.legacyItemId));
+  const lineageByLegacyItemId = new Map(
+    lineageDetails.map((item) => [item.legacyItemId, item]),
+  );
+  const legacyRecordsWithLineage = legacyRecords.map((record) => {
+    const lineageDetail = lineageByLegacyItemId.get(record.id);
+    return {
+      ...record,
+      relationship: lineageDetail?.relationship ?? "source",
+      decision: lineageDetail?.decision ?? null,
+      reviewer: lineageDetail?.reviewer ?? null,
+      reviewedAt: lineageDetail?.reviewedAt?.toISOString() ?? null,
+      reason: lineageDetail?.reason ?? null,
+    };
+  });
   const reviews = legacyRecords.length
     ? await db
         .select({
@@ -235,7 +260,7 @@ async function toCanonicalDetail(canonical: typeof canonicalItemsTable.$inferSel
     status: canonical.status,
     legacyRecordCount: legacyRecords.length,
     departmentCount: departmentNames.size,
-    legacyRecords,
+    legacyRecords: legacyRecordsWithLineage,
     vocabularyHistory: reviews,
   };
 }

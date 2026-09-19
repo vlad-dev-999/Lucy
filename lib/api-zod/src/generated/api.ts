@@ -367,7 +367,13 @@ export const CreateCanonicalItemResponse = zod.object({
   "dglp": zod.number().nullable(),
   "echs": zod.number().nullable()
 }))
-})),
+}).and(zod.object({
+  "relationship": zod.string(),
+  "decision": zod.string().nullable(),
+  "reviewer": zod.string().nullable(),
+  "reviewedAt": zod.coerce.date().nullable(),
+  "reason": zod.string().nullable()
+}))),
   "vocabularyHistory": zod.array(zod.object({
   "id": zod.string(),
   "reviewType": zod.string(),
@@ -422,7 +428,13 @@ export const GetCanonicalItemResponse = zod.object({
   "dglp": zod.number().nullable(),
   "echs": zod.number().nullable()
 }))
-})),
+}).and(zod.object({
+  "relationship": zod.string(),
+  "decision": zod.string().nullable(),
+  "reviewer": zod.string().nullable(),
+  "reviewedAt": zod.coerce.date().nullable(),
+  "reason": zod.string().nullable()
+}))),
   "vocabularyHistory": zod.array(zod.object({
   "id": zod.string(),
   "reviewType": zod.string(),

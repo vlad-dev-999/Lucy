@@ -239,8 +239,20 @@ export type CanonicalItemDetailVocabularyHistoryItem = {
   detail: string;
 };
 
+export type CanonicalItemDetailLegacyRecord = LegacyItem & ({
+  relationship: string;
+  /** @nullable */
+  decision: string | null;
+  /** @nullable */
+  reviewer: string | null;
+  /** @nullable */
+  reviewedAt: string | null;
+  /** @nullable */
+  reason: string | null;
+});
+
 export type CanonicalItemDetail = CanonicalItem & {
-  legacyRecords: LegacyItem[];
+  legacyRecords: CanonicalItemDetailLegacyRecord[];
   vocabularyHistory: CanonicalItemDetailVocabularyHistoryItem[];
 };
 

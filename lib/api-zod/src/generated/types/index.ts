@@ -8,6 +8,7 @@
 
 export * from './canonicalItem';
 export * from './canonicalItemDetail';
+export * from './canonicalItemDetailLegacyRecord';
 export * from './canonicalItemDetailVocabularyHistoryItem';
 export * from './canonicalItemPage';
 export * from './commitImportInput';

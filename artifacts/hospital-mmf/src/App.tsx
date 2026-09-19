@@ -771,8 +771,8 @@ function CanonicalDetailPage() {
       <SectionCard title="Legacy records" eyebrow="Immutable source lineage">
         <div className="border-b border-slate-100 bg-[#f8fbfb] px-5 py-3 text-xs text-slate-500">Every source row remains attached to this canonical item. Canonicalization does not erase or replace the legacy record.</div>
         {!item.legacyRecords.length ? <EmptyState title="No linked legacy records" detail="This canonical item has no source lineage records." /> : <div className="overflow-x-auto">
-          <table className="w-full min-w-[920px] text-left" data-testid="table-canonical-lineage">
-            <thead className="bg-white"><tr className="border-b border-slate-100">{['Source', 'Identifier', 'Nomenclature', 'Specification', 'Unit', 'PVMS', 'NIV', 'Departments'].map((header) => <th key={header} className="px-3 py-3 font-mono text-[9px] font-bold uppercase tracking-[0.1em] text-slate-400">{header}</th>)}</tr></thead>
+          <table className="w-full min-w-[1180px] text-left" data-testid="table-canonical-lineage">
+            <thead className="bg-white"><tr className="border-b border-slate-100">{['Import / source row', 'Identifier', 'Nomenclature', 'Specification', 'Unit', 'PVMS', 'NIV', 'DGLP / ECHS', 'Departments'].map((header) => <th key={header} className="px-3 py-3 font-mono text-[9px] font-bold uppercase tracking-[0.1em] text-slate-400">{header}</th>)}</tr></thead>
             <tbody className="divide-y divide-slate-100">{item.legacyRecords.map((record) => <tr key={record.id} className="align-top text-[11px]" data-testid={`lineage-record-${record.id}`}>
               <td className="whitespace-nowrap px-3 py-3 font-mono text-slate-500">{record.sourceWorksheet} · row {record.sourceRow}<div className="mt-1 text-[10px] text-slate-400">{record.importId}</div></td>
               <td className="px-3 py-3 font-mono font-bold text-[#315d7f]">{record.identifier ?? '—'}</td>
@@ -781,6 +781,7 @@ function CanonicalDetailPage() {
               <td className="px-3 py-3 text-slate-500">{record.unit ?? '—'}</td>
               <td className="px-3 py-3 font-mono text-slate-600">{record.pvms ?? '—'}</td>
               <td className="px-3 py-3 font-mono text-slate-600">{record.niv ?? '—'}</td>
+              <td className="max-w-[220px] px-3 py-3 text-slate-600">{record.departments.length ? record.departments.map((department) => <div key={department.name} className="mb-1 last:mb-0"><span className="font-semibold text-[#1e3447]">{department.name}</span><div className="text-[10px] text-slate-400">DGLP {legacyCell(department.dglp)} · ECHS {legacyCell(department.echs)}</div></div>) : '—'}</td>
               <td className="max-w-[180px] px-3 py-3 text-slate-600">{record.departments.length ? record.departments.map((department) => department.name).join(', ') : '—'}</td>
             </tr>)}</tbody>
           </table>
@@ -796,8 +797,22 @@ function CanonicalDetailPage() {
             </div>
           </div>
         </SectionCard>
-        <SectionCard title="Review history" eyebrow="Linked decisions and findings">
-          {!item.vocabularyHistory.length ? <EmptyState title="No review history" detail="No vocabulary review records are linked to this canonical item." /> : <div className="divide-y divide-slate-100">{item.vocabularyHistory.map((review) => <div key={review.id} className="px-5 py-4" data-testid={`history-${review.id}`}><div className="flex items-center justify-between gap-3"><Badge tone={review.status === 'resolved' ? 'success' : 'warning'}>{review.status}</Badge><span className="font-mono text-[10px] text-slate-400">{review.reviewType}</span></div><div className="mt-2 text-xs font-bold text-[#1e3447]">{review.title}</div><p className="mt-1 text-[11px] leading-relaxed text-slate-500">{review.detail}</p></div>)}</div>}
+        <SectionCard title="Review / decision history" eyebrow="Linked decisions and findings">
+          {!item.legacyRecords.some((record) => record.decision || record.reviewer || record.reviewedAt || record.reason) && !item.vocabularyHistory.length ? <EmptyState title="No review history" detail="No vocabulary review records are linked to this canonical item." /> : <div>
+            {item.legacyRecords.some((record) => record.decision || record.reviewer || record.reviewedAt || record.reason) && <div className="divide-y divide-slate-100">
+              {item.legacyRecords.filter((record) => record.decision || record.reviewer || record.reviewedAt || record.reason).map((record) => <div key={`decision-${record.id}`} className="px-5 py-4" data-testid={`decision-${record.id}`}>
+                <div className="flex items-center justify-between gap-3"><Badge tone="success">{record.decision ?? 'Reviewed'}</Badge><span className="font-mono text-[10px] text-slate-400">{record.relationship}</span></div>
+                <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                  <DetailField label="Reviewer" value={record.reviewer} />
+                  <DetailField label="Review timestamp" value={formatDate(record.reviewedAt, true)} />
+                </div>
+                <div className="mt-3 rounded-lg border border-slate-100 bg-[#fbfdfd] p-3"><div className="font-mono text-[9px] font-bold uppercase tracking-[0.12em] text-slate-400">Reason</div><div className="mt-1 text-[11px] leading-relaxed text-[#1e3447]">{record.reason ?? '—'}</div></div>
+              </div>)}
+            </div>}
+            {item.vocabularyHistory.length > 0 && <div className="divide-y divide-slate-100 border-t border-slate-100">
+              {item.vocabularyHistory.map((review) => <div key={review.id} className="px-5 py-4" data-testid={`history-${review.id}`}><div className="flex items-center justify-between gap-3"><Badge tone={review.status === 'resolved' ? 'success' : 'warning'}>{review.status}</Badge><span className="font-mono text-[10px] text-slate-400">{review.reviewType}</span></div><div className="mt-2 text-xs font-bold text-[#1e3447]">{review.title}</div><p className="mt-1 text-[11px] leading-relaxed text-slate-500">{review.detail}</p></div>)}
+            </div>}
+          </div>}
         </SectionCard>
       </div>
     </div>

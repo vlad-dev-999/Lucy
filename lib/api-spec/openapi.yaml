@@ -621,7 +621,7 @@ components:
             legacyRecords:
               type: array
               items:
-                $ref: "#/components/schemas/LegacyItem"
+                $ref: "#/components/schemas/CanonicalItemDetailLegacyRecord"
             vocabularyHistory:
               type: array
               items:
@@ -638,6 +638,23 @@ components:
                     type: string
                   detail:
                     type: string
+    CanonicalItemDetailLegacyRecord:
+      allOf:
+        - $ref: "#/components/schemas/LegacyItem"
+        - type: object
+          required: [relationship, decision, reviewer, reviewedAt, reason]
+          properties:
+            relationship:
+              type: string
+            decision:
+              type: ["string", "null"]
+            reviewer:
+              type: ["string", "null"]
+            reviewedAt:
+              type: ["string", "null"]
+              format: date-time
+            reason:
+              type: ["string", "null"]
     CanonicalItemPage:
       type: object
       required: [items, page, pageSize, total]
