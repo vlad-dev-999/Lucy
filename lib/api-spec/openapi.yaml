@@ -204,20 +204,51 @@ paths:
       tags: [vocabulary]
       summary: List vocabulary review records
       parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
         - name: status
           in: query
           schema:
             type: string
             enum: [open, resolved, all]
+        - name: reviewType
+          in: query
+          schema:
+            type: string
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [createdAt, reviewType, status, identifier, title]
+            default: createdAt
+        - name: direction
+          in: query
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: pageSize
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 25
       responses:
         "200":
           description: Vocabulary review queue
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/VocabularyReview"
+                $ref: "#/components/schemas/VocabularyReviewPage"
   /vocabulary-reviews/{reviewId}/decision:
     post:
       operationId: decideVocabularyReview
@@ -652,6 +683,20 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/LegacyItem"
+    VocabularyReviewPage:
+      type: object
+      required: [items, page, pageSize, total]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/VocabularyReview"
+        page:
+          type: integer
+        pageSize:
+          type: integer
+        total:
+          type: integer
     VocabularyDecisionInput:
       type: object
       required: [decision]
@@ -667,6 +712,14 @@ components:
             type: string
         sourceColumnStart:
           type: integer
+        nomenclature:
+          type: ["string", "null"]
+        unit:
+          type: ["string", "null"]
+        pvms:
+          type: ["string", "null"]
+        niv:
+          type: ["string", "null"]
     Overview:
       type: object
       required: [cycle, baseline, quality, departments, recentActivity]

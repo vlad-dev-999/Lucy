@@ -33,7 +33,8 @@ import type {
   ListVocabularyReviewsParams,
   Overview,
   VocabularyDecisionInput,
-  VocabularyReview
+  VocabularyReview,
+  VocabularyReviewPage
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -893,9 +894,9 @@ export const getListVocabularyReviewsUrl = (params?: ListVocabularyReviewsParams
 /**
  * @summary List vocabulary review records
  */
-export const listVocabularyReviews = async (params?: ListVocabularyReviewsParams, options?: Parameters<typeof customFetch>[1]): Promise<VocabularyReview[]> => {
+export const listVocabularyReviews = async (params?: ListVocabularyReviewsParams, options?: Parameters<typeof customFetch>[1]): Promise<VocabularyReviewPage> => {
 
-  return customFetch<VocabularyReview[]>(getListVocabularyReviewsUrl(params),
+  return customFetch<VocabularyReviewPage>(getListVocabularyReviewsUrl(params),
   {
     ...options,
     method: 'GET'

@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import * as XLSX from 'xlsx';
 import {
   Activity,
@@ -36,14 +36,18 @@ import {
   getGetImportQueryKey,
   getGetOverviewQueryKey,
   getListImportsQueryKey,
+  getListVocabularyReviewsQueryKey,
+  useDecideVocabularyReview,
   useCommitImport,
   useCreateImport,
   useGetImport,
   useGetOverview,
+  useListCanonicalItems,
   useListDepartments,
   useListImports,
+  useListVocabularyReviews,
 } from '@workspace/api-client-react';
-import type { Department, DepartmentInput, ImportSummary, LegacyRowInput, PreviewRow, QualityIssue } from '@workspace/api-client-react';
+import type { CanonicalItem, Department, DepartmentInput, ImportSummary, LegacyItem, LegacyRowInput, ListVocabularyReviewsParams, PreviewRow, QualityIssue, VocabularyDecisionInput, VocabularyDecisionInputDecision, VocabularyReview } from '@workspace/api-client-react';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -600,16 +604,168 @@ function DepartmentCard({ department, index }: { department: Department; index: 
   return <div className="panel-shadow group rounded-xl border border-slate-200/90 bg-white p-5 transition-transform duration-200 hover:-translate-y-0.5" data-testid={`card-department-${department.id}`}><div className="flex items-start justify-between gap-4"><span className={`grid size-10 place-items-center rounded-xl font-mono text-xs font-bold ${palettes[index % palettes.length]}`}>{initials(department.name)}</span><Badge tone="success"><CheckCircle2 size={12} /> Detected</Badge></div><div className="mt-5 text-sm font-bold text-[#1e3447]">{department.name}</div><div className="mt-1 text-xs text-slate-500">Source column {department.sourceColumnStart}</div><div className="mt-5 flex items-end justify-between border-t border-slate-100 pt-4"><div><div className="font-mono text-2xl font-bold tracking-[-0.07em] text-[#1e3447]">{formatNumber(department.itemCount)}</div><div className="text-[10px] uppercase tracking-[0.1em] text-slate-400">Items mapped</div></div><ArrowRight className="text-slate-300 transition-transform group-hover:translate-x-1" size={17} /></div></div>;
 }
 
+const reviewTypes = [
+  'EXACT_DUPLICATE',
+  'PROBABLE_DUPLICATE',
+  'IDENTIFIER_CONFLICT',
+  'MISSING_IDENTIFIER',
+  'OBSOLETE_CANDIDATE',
+  'NEW_ITEM',
+] as const;
+
+const decisionLabels: Record<string, string> = {
+  MERGE: 'Merge into canonical',
+  KEEP_SEPARATE: 'Keep separate',
+  CORRECT: 'Correct canonical',
+  RETIRE: 'Retire',
+  CREATE_CANONICAL: 'Create canonical',
+  INVESTIGATE: 'Investigate',
+};
+
+function reviewTypeLabel(reviewType: string) {
+  return reviewType.replaceAll('_', ' ').toLowerCase().replace(/(^|\s)\S/g, (letter) => letter.toUpperCase());
+}
+
+function legacyCell(value: string | number | null | undefined) {
+  return value === null || value === undefined || value === '' ? '—' : String(value);
+}
+
+function LegacyRecordTable({ records }: { records: LegacyItem[] }) {
+  if (!records.length) return <EmptyState title="No source records attached" detail="This review record has no preserved legacy candidates." />;
+  const columns: Array<{ key: keyof LegacyItem; label: string }> = [
+    { key: 'identifier', label: 'Identifier' },
+    { key: 'nomenclature', label: 'Nomenclature' },
+    { key: 'specification', label: 'Specification' },
+    { key: 'unit', label: 'Unit' },
+    { key: 'pvms', label: 'PVMS' },
+    { key: 'niv', label: 'NIV' },
+    { key: 'currentDglpMmf', label: 'DGLP' },
+    { key: 'currentEchsMmf', label: 'ECHS' },
+  ];
+  return <div className="overflow-x-auto rounded-lg border border-slate-200">
+    <table className="w-full min-w-[980px] text-left">
+      <thead className="bg-[#f8fbfb]">
+        <tr className="border-b border-slate-200">
+          {['Source', ...columns.map((column) => column.label), 'Departments'].map((label) => <th key={label} className="px-3 py-2.5 font-mono text-[9px] font-bold uppercase tracking-[0.1em] text-slate-400">{label}</th>)}
+        </tr>
+      </thead>
+      <tbody className="divide-y divide-slate-100 bg-white">
+        {records.map((record) => <tr key={record.id} className="align-top text-[11px]" data-testid={`review-record-${record.id}`}>
+          <td className="whitespace-nowrap px-3 py-3 font-mono text-slate-500">{record.sourceWorksheet} · row {record.sourceRow}<div className="mt-1 text-[10px] text-slate-400">{record.importId}</div></td>
+          {columns.map((column) => <td key={column.key} className={`max-w-[190px] px-3 py-3 ${column.key === 'identifier' ? 'font-mono font-bold text-[#315d7f]' : 'text-slate-600'}`}>{legacyCell(record[column.key] as string | number | null | undefined)}</td>)}
+          <td className="max-w-[180px] px-3 py-3 text-slate-600">{record.departments.length ? record.departments.map((department) => department.name).join(', ') : '—'}</td>
+        </tr>)}
+      </tbody>
+    </table>
+  </div>;
+}
+
+function ReviewDecisionPanel({ review, canonicals, onComplete, onFeedback }: { review: VocabularyReview; canonicals: CanonicalItem[]; onComplete: (message: string) => void; onFeedback: (message: string) => void }) {
+  const decide = useDecideVocabularyReview();
+  const [decision, setDecision] = useState<keyof typeof decisionLabels>('INVESTIGATE');
+  const [canonicalId, setCanonicalId] = useState('');
+  const [note, setNote] = useState('');
+  const [nomenclature, setNomenclature] = useState('');
+  const [unit, setUnit] = useState('');
+  const [pvms, setPvms] = useState('');
+  const [niv, setNiv] = useState('');
+
+  useEffect(() => {
+    const first = review.candidateRecords[0];
+    setDecision('INVESTIGATE');
+    setCanonicalId('');
+    setNote('');
+    setNomenclature(first?.nomenclature ?? '');
+    setUnit(first?.unit ?? '');
+    setPvms(first?.pvms ?? '');
+    setNiv(first?.niv ?? '');
+  }, [review]);
+
+  const needsTarget = decision === 'MERGE' || decision === 'CORRECT';
+  const submit = () => {
+    if (needsTarget && !canonicalId) {
+      onFeedback('Select an explicit canonical target before continuing.');
+      return;
+    }
+    if (!window.confirm(`${decisionLabels[decision]} this review? The legacy source record will be preserved.`)) return;
+    const data: VocabularyDecisionInput = {
+      decision: decision as VocabularyDecisionInputDecision,
+      note: note.trim() || undefined,
+      canonicalItemIds: canonicalId ? [canonicalId] : undefined,
+      ...(decision === 'CORRECT' ? {
+        nomenclature: nomenclature.trim() || null,
+        unit: unit.trim() || null,
+        pvms: pvms.trim() || null,
+        niv: niv.trim() || null,
+      } : {}),
+    };
+    decide.mutate({ reviewId: review.id, data }, {
+      onSuccess: () => onComplete(`${reviewTypeLabel(review.reviewType)} marked ${decisionLabels[decision].toLowerCase()}.`),
+      onError: () => onFeedback('The review action could not be saved. No legacy source record was deleted.'),
+    });
+  };
+
+  return <div className="mt-5 rounded-xl border border-[#bdcfdf] bg-[#f7fafc] p-4">
+    <div className="flex items-start justify-between gap-4">
+      <div><div className="font-mono text-[10px] uppercase tracking-[0.14em] text-[#315d7f]">Decision</div><h3 className="mt-1 text-sm font-bold text-[#1e3447]">Record a governed outcome</h3><p className="mt-1 text-[11px] text-slate-500">Every action keeps the immutable legacy source row and records the reviewer note.</p></div>
+      {decide.isPending && <Badge tone="info"><RefreshCw size={11} className="animate-spin" /> Saving</Badge>}
+    </div>
+    <div className="mt-4 grid gap-3 md:grid-cols-[190px_1fr]">
+      <label className="text-[11px] font-semibold text-slate-600">Action<select value={decision} onChange={(event) => setDecision(event.target.value as keyof typeof decisionLabels)} className="mt-1 h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-xs text-slate-700 outline-none focus:ring-2 focus:ring-[#9ed8c7]" data-testid="select-review-action">{Object.entries(decisionLabels).map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label>
+      {(needsTarget || decision === 'RETIRE') && <label className="text-[11px] font-semibold text-slate-600">Canonical target {needsTarget && <span className="font-normal text-[#a34b3d]">required</span>}<select value={canonicalId} onChange={(event) => setCanonicalId(event.target.value)} className="mt-1 h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-xs text-slate-700 outline-none focus:ring-2 focus:ring-[#9ed8c7]" data-testid="select-canonical-target"><option value="">Select canonical item</option>{canonicals.map((canonical) => <option key={canonical.id} value={canonical.id}>{canonical.canonicalId} · {canonical.nomenclature ?? 'Unnamed item'}</option>)}</select></label>}
+    </div>
+    {decision === 'CORRECT' && <div className="mt-3 grid gap-3 md:grid-cols-4">{[['Nomenclature', nomenclature, setNomenclature], ['Unit', unit, setUnit], ['PVMS', pvms, setPvms], ['NIV', niv, setNiv]].map(([label, value, setter]) => <label key={label as string} className="text-[11px] font-semibold text-slate-600">{label as string}<input value={value as string} onChange={(event) => (setter as (value: string) => void)(event.target.value)} className="mt-1 h-9 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-normal outline-none focus:ring-2 focus:ring-[#9ed8c7]" /></label>)}</div>}
+    <label className="mt-3 block text-[11px] font-semibold text-slate-600">Reviewer note<textarea value={note} onChange={(event) => setNote(event.target.value)} rows={2} placeholder="Explain the governance decision or next step" className="mt-1 w-full resize-none rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-normal outline-none focus:ring-2 focus:ring-[#9ed8c7]" data-testid="textarea-review-note" /></label>
+    <div className="mt-3 flex justify-end"><button disabled={decide.isPending} onClick={submit} className="inline-flex items-center gap-2 rounded-lg bg-[#244c65] px-4 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-[#1a3d51] disabled:cursor-not-allowed disabled:opacity-50" data-testid="button-submit-review"><Check size={14} /> Save decision</button></div>
+  </div>;
+}
+
 function ReviewQueuePage() {
-  const importsQuery = useListImports();
-  const [filter, setFilter] = useState<'all' | 'critical' | 'missing'>('all');
-  const reviewImports = (importsQuery.data ?? []).filter((item) => item.quality.conflicts > 0 || item.quality.missingIdentifiers > 0);
+  const queryClient = useQueryClient();
+  const [search, setSearch] = useState('');
+  const [status, setStatus] = useState<ListVocabularyReviewsParams['status']>('open');
+  const [reviewType, setReviewType] = useState('');
+  const [sort, setSort] = useState<ListVocabularyReviewsParams['sort']>('createdAt');
+  const [direction, setDirection] = useState<ListVocabularyReviewsParams['direction']>('desc');
+  const [page, setPage] = useState(1);
+  const [selectedReview, setSelectedReview] = useState<VocabularyReview | null>(null);
+  const [feedback, setFeedback] = useState('');
+  const pageSize = 10;
+  const params = useMemo(() => ({ search: search.trim() || undefined, status, reviewType: reviewType || undefined, sort, direction, page, pageSize }), [direction, page, reviewType, search, sort, status]);
+  const reviewsQuery = useListVocabularyReviews(params);
+  const canonicalQuery = useListCanonicalItems({ status: 'active', page: 1, pageSize: 100 });
+  const data = reviewsQuery.data;
+  const totalPages = Math.max(1, Math.ceil((data?.total ?? 0) / pageSize));
+
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
+
+  const selectReview = (review: VocabularyReview) => {
+    setFeedback('');
+    setSelectedReview(review);
+  };
+  const completeDecision = (message: string) => {
+    setFeedback(message);
+    setSelectedReview(null);
+    void queryClient.invalidateQueries({ queryKey: getListVocabularyReviewsQueryKey() });
+  };
+
   return <div className="mx-auto max-w-[1440px] rise-in">
-    <PageHeading eyebrow="Resolution workspace" title="Review queue" description="Focus on identifier conflicts and missing identifiers before the next baseline is committed." action={<div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white p-1"><button onClick={() => setFilter('all')} className={`rounded-md px-3 py-1.5 text-xs font-bold ${filter === 'all' ? 'bg-[#edf3f5] text-[#315d7f]' : 'text-slate-500'}`} data-testid="button-filter-all">All</button><button onClick={() => setFilter('critical')} className={`rounded-md px-3 py-1.5 text-xs font-bold ${filter === 'critical' ? 'bg-[#fff1ee] text-[#a34b3d]' : 'text-slate-500'}`} data-testid="button-filter-critical">Conflicts</button><button onClick={() => setFilter('missing')} className={`rounded-md px-3 py-1.5 text-xs font-bold ${filter === 'missing' ? 'bg-[#fff7e8] text-[#8b641f]' : 'text-slate-500'}`} data-testid="button-filter-missing">Missing IDs</button></div>} />
-    <div className="mb-6 grid gap-4 sm:grid-cols-3"><MetricCard label="Open imports" value={formatNumber(reviewImports.length)} detail="with identifier findings" icon={FileSpreadsheet} tone="navy" /><MetricCard label="Conflicts" value={formatNumber(reviewImports.reduce((sum, item) => sum + item.quality.conflicts, 0))} detail="duplicate or conflicting IDs" icon={CircleAlert} tone="rose" /><MetricCard label="Missing IDs" value={formatNumber(reviewImports.reduce((sum, item) => sum + item.quality.missingIdentifiers, 0))} detail="rows without identifiers" icon={Hash} tone="amber" /></div>
-    <SectionCard title="Identifier findings" eyebrow="Grouped by import" action={<span className="inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-[0.15em] text-slate-400"><Filter size={12} /> {filter}</span>}>
-      {importsQuery.isLoading ? <div className="space-y-3 p-5"><div className="skeleton h-14 rounded" /><div className="skeleton h-14 rounded" /><div className="skeleton h-14 rounded" /></div> : importsQuery.isError ? <div className="p-5"><QueryState error={importsQuery.error} onRetry={() => void importsQuery.refetch()} label="review queue" /></div> : !reviewImports.length ? <EmptyState title="Queue is clear" detail="No imports currently report identifier conflicts or missing identifiers." action={<Link href="/imports" className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-[#315d7f]" data-testid="link-imports-queue-empty">View import history</Link>} /> : <div className="divide-y divide-slate-100">{reviewImports.filter((item) => filter === 'all' || (filter === 'critical' ? item.quality.conflicts > 0 : item.quality.missingIdentifiers > 0)).map((item) => <Link href={`/imports/${item.id}`} key={item.id} className="group flex flex-col gap-4 px-5 py-4 transition-colors hover:bg-[#f8fbfb] sm:flex-row sm:items-center sm:justify-between" data-testid={`queue-item-${item.id}`}><div className="flex items-center gap-3"><span className="grid size-9 place-items-center rounded-lg bg-[#fff1ee] text-[#a34b3d]"><AlertTriangle size={17} /></span><div><div className="text-xs font-bold text-[#1e3447] group-hover:text-[#315d7f]">{item.sourceFileName}</div><div className="mt-1 text-[11px] text-slate-500">Review created {formatDate(item.createdAt)} · {formatNumber(item.rowCount)} rows</div></div></div><div className="flex items-center gap-3 pl-12 sm:pl-0">{item.quality.conflicts > 0 && <Badge tone="critical">{item.quality.conflicts} conflicts</Badge>}{item.quality.missingIdentifiers > 0 && <Badge tone="warning">{item.quality.missingIdentifiers} missing IDs</Badge>}<ChevronRight size={16} className="text-slate-300" /></div></Link>)}</div>}
+    <PageHeading eyebrow="Resolution workspace" title="Vocabulary review" description="Resolve duplicate, conflicting, missing, new, and obsolete vocabulary records without changing the underlying source workbook." action={<div className="flex items-center gap-2"><Badge tone="info"><Database size={12} /> {formatNumber(data?.total)} records</Badge></div>} />
+    {feedback && <div className="mb-5 flex items-center justify-between rounded-lg border border-[#b9ded2] bg-[#eef8f4] px-4 py-3 text-xs font-semibold text-[#1e6856]" role="status"><span className="flex items-center gap-2"><CheckCircle2 size={15} /> {feedback}</span><button onClick={() => setFeedback('')} aria-label="Dismiss feedback"><X size={14} /></button></div>}
+    <SectionCard title="Review queue" eyebrow="Actionable vocabulary records" action={<div className="flex items-center gap-2"><span className="font-mono text-[10px] text-slate-400">Page {data?.page ?? page} of {totalPages}</span><button onClick={() => void reviewsQuery.refetch()} className="grid size-8 place-items-center rounded-lg border border-slate-200 bg-white text-slate-500 hover:bg-slate-50" aria-label="Refresh review queue" data-testid="button-refresh-review-queue"><RefreshCw size={14} /></button></div>}>
+      <div className="grid gap-3 border-b border-slate-100 bg-[#fbfdfd] p-4 lg:grid-cols-[1fr_160px_180px_150px_110px]">
+        <label className="relative block text-[10px] font-bold uppercase tracking-[0.1em] text-slate-400"><Search className="absolute left-3 top-8 text-slate-400" size={14} /><span className="sr-only">Search</span><input value={search} onChange={(event) => { setSearch(event.target.value); setPage(1); }} placeholder="Search identifier, title, or detail" className="mt-1 h-10 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 text-xs font-normal normal-case tracking-normal text-slate-700 outline-none focus:ring-2 focus:ring-[#9ed8c7]" data-testid="input-search-review-queue" /></label>
+        <label className="text-[10px] font-bold uppercase tracking-[0.1em] text-slate-400">Issue type<select value={reviewType} onChange={(event) => { setReviewType(event.target.value); setPage(1); }} className="mt-1 h-10 w-full rounded-lg border border-slate-200 bg-white px-2 text-xs font-normal normal-case tracking-normal text-slate-700 outline-none focus:ring-2 focus:ring-[#9ed8c7]" data-testid="select-review-type"><option value="">All issue types</option>{reviewTypes.map((type) => <option key={type} value={type}>{reviewTypeLabel(type)}</option>)}</select></label>
+        <label className="text-[10px] font-bold uppercase tracking-[0.1em] text-slate-400">Status<select value={status} onChange={(event) => { setStatus(event.target.value as ListVocabularyReviewsParams['status']); setPage(1); }} className="mt-1 h-10 w-full rounded-lg border border-slate-200 bg-white px-2 text-xs font-normal normal-case tracking-normal text-slate-700 outline-none focus:ring-2 focus:ring-[#9ed8c7]" data-testid="select-review-status"><option value="open">Open</option><option value="resolved">Resolved</option><option value="all">All statuses</option></select></label>
+        <label className="text-[10px] font-bold uppercase tracking-[0.1em] text-slate-400">Sort by<select value={sort} onChange={(event) => setSort(event.target.value as ListVocabularyReviewsParams['sort'])} className="mt-1 h-10 w-full rounded-lg border border-slate-200 bg-white px-2 text-xs font-normal normal-case tracking-normal text-slate-700 outline-none focus:ring-2 focus:ring-[#9ed8c7]" data-testid="select-review-sort"><option value="createdAt">Created</option><option value="reviewType">Issue type</option><option value="status">Status</option><option value="identifier">Identifier</option><option value="title">Title</option></select></label>
+        <label className="text-[10px] font-bold uppercase tracking-[0.1em] text-slate-400">Order<select value={direction} onChange={(event) => setDirection(event.target.value as ListVocabularyReviewsParams['direction'])} className="mt-1 h-10 w-full rounded-lg border border-slate-200 bg-white px-2 text-xs font-normal normal-case tracking-normal text-slate-700 outline-none focus:ring-2 focus:ring-[#9ed8c7]" data-testid="select-review-direction"><option value="desc">Newest</option><option value="asc">Oldest</option></select></label>
+      </div>
+      {reviewsQuery.isLoading ? <div className="space-y-3 p-5"><div className="skeleton h-20 rounded" /><div className="skeleton h-20 rounded" /><div className="skeleton h-20 rounded" /></div> : reviewsQuery.isError ? <div className="p-5"><QueryState error={reviewsQuery.error} onRetry={() => void reviewsQuery.refetch()} label="vocabulary review queue" /></div> : !data?.items.length ? <EmptyState title={status === 'open' ? 'Queue is clear' : 'No review records found'} detail={status === 'open' ? 'No open vocabulary decisions match the current filters.' : 'Try a different status, issue type, or search term.'} /> : <div className="divide-y divide-slate-100">{data.items.map((review) => <button key={review.id} onClick={() => selectReview(review)} className={`block w-full px-5 py-4 text-left transition-colors hover:bg-[#f8fbfb] ${selectedReview?.id === review.id ? 'bg-[#f1f7f7]' : ''}`} data-testid={`queue-item-${review.id}`}><div className="flex items-start justify-between gap-4"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><Badge tone={review.status === 'open' ? 'warning' : 'success'}>{review.status}</Badge><Badge tone={review.reviewType === 'IDENTIFIER_CONFLICT' ? 'critical' : 'info'}>{reviewTypeLabel(review.reviewType)}</Badge>{review.identifier && <span className="font-mono text-[11px] font-bold text-[#315d7f]">{review.identifier}</span>}</div><div className="mt-2 text-sm font-bold text-[#1e3447]">{review.title}</div><p className="mt-1 max-w-4xl truncate text-xs text-slate-500">{review.detail}</p></div><div className="flex shrink-0 items-center gap-2 text-[11px] text-slate-400"><span>{review.candidateRecords.length} source {review.candidateRecords.length === 1 ? 'record' : 'records'}</span><ChevronRight size={16} /></div></div></button>)}</div>}
+      <div className="flex items-center justify-between border-t border-slate-100 px-5 py-3"><span className="text-[11px] text-slate-500">Showing {data?.items.length ?? 0} of {formatNumber(data?.total)} records</span><div className="flex items-center gap-2"><button disabled={page <= 1} onClick={() => setPage((current) => Math.max(1, current - 1))} className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 disabled:cursor-not-allowed disabled:opacity-40" data-testid="button-review-previous"><ArrowLeft size={13} className="inline mr-1" />Previous</button><button disabled={page >= totalPages} onClick={() => setPage((current) => Math.min(totalPages, current + 1))} className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 disabled:cursor-not-allowed disabled:opacity-40" data-testid="button-review-next">Next<ArrowRight size={13} className="inline ml-1" /></button></div></div>
     </SectionCard>
+    {selectedReview && <section className="mt-6 rounded-xl border border-slate-200 bg-white panel-shadow"><div className="border-b border-slate-100 px-5 py-4"><div className="flex items-start justify-between gap-4"><div><div className="flex flex-wrap items-center gap-2"><span className="font-mono text-[10px] uppercase tracking-[0.14em] text-slate-400">{reviewTypeLabel(selectedReview.reviewType)}</span><Badge tone={selectedReview.status === 'open' ? 'warning' : 'success'}>{selectedReview.status}</Badge></div><h2 className="mt-2 text-lg font-bold tracking-[-0.03em] text-[#1e3447]">{selectedReview.title}</h2><p className="mt-1 max-w-4xl text-xs leading-relaxed text-slate-500">{selectedReview.detail}</p></div><button onClick={() => setSelectedReview(null)} className="grid size-8 place-items-center rounded-lg border border-slate-200 text-slate-400 hover:bg-slate-50" aria-label="Close review detail"><X size={15} /></button></div></div><div className="p-5"><div className="mb-3 flex items-center gap-2 font-mono text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400"><FileText size={13} /> Preserved legacy records {selectedReview.reviewType === 'IDENTIFIER_CONFLICT' && <span className="font-sans font-normal normal-case tracking-normal text-slate-500">Compare side-by-side before deciding.</span>}</div><LegacyRecordTable records={selectedReview.candidateRecords} /><ReviewDecisionPanel review={selectedReview} canonicals={canonicalQuery.data?.items ?? []} onComplete={completeDecision} onFeedback={setFeedback} /></div></section>}
   </div>;
 }
 

@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import {
   and,
   asc,
+  count,
   desc,
   eq,
   ilike,
@@ -512,14 +513,15 @@ async function createCanonicalFromLegacyIds(
   }
 
   const first = legacyRecords[0];
+  const firstIdentifiers = splitIdentifier(first.identifier);
   const [canonical] = await db
     .insert(canonicalItemsTable)
     .values({
       id: `canonical_${crypto.randomUUID()}`,
       nomenclature: overrides.nomenclature ?? first.nomenclature,
       unit: overrides.unit ?? first.unit,
-      pvms: overrides.pvms ?? first.identifier?.startsWith("PVMS") ? first.identifier : null,
-      niv: overrides.niv ?? first.identifier?.startsWith("NIV") ? first.identifier : null,
+      pvms: overrides.pvms ?? first.pvms ?? firstIdentifiers.pvms,
+      niv: overrides.niv ?? first.niv ?? firstIdentifiers.niv,
     })
     .returning();
   if (!canonical) throw new Error("Canonical item could not be created");
@@ -536,6 +538,44 @@ async function createCanonicalFromLegacyIds(
     })),
   );
   return toCanonicalDetail(canonical);
+}
+
+async function updateLineage(
+  legacyItemIds: string[],
+  canonicalItemId: string,
+  reviewMetadata: {
+    decision?: string | null;
+    reviewer?: string | null;
+    reason?: string | null;
+  },
+) {
+  for (const legacyItemId of Array.from(new Set(legacyItemIds))) {
+    const [existing] = await db
+      .select({ id: legacyCanonicalLineageTable.id })
+      .from(legacyCanonicalLineageTable)
+      .where(eq(legacyCanonicalLineageTable.legacyItemId, legacyItemId))
+      .limit(1);
+    const values = {
+      canonicalItemId,
+      relationship: "source",
+      decision: reviewMetadata.decision ?? null,
+      reviewer: reviewMetadata.reviewer ?? null,
+      reviewedAt: reviewMetadata.decision ? new Date() : null,
+      reason: reviewMetadata.reason ?? null,
+    };
+    if (existing) {
+      await db
+        .update(legacyCanonicalLineageTable)
+        .set(values)
+        .where(eq(legacyCanonicalLineageTable.id, existing.id));
+    } else {
+      await db.insert(legacyCanonicalLineageTable).values({
+        id: `lineage_${crypto.randomUUID()}`,
+        legacyItemId,
+        ...values,
+      });
+    }
+  }
 }
 
 router.get("/canonical-items", async (req, res, next) => {
@@ -630,15 +670,49 @@ router.get("/canonical-items/:canonicalItemId", async (req, res, next) => {
 router.get("/vocabulary-reviews", async (req, res, next) => {
   try {
     const params = ListVocabularyReviewsQueryParams.parse(req.query);
-    const where = params.status && params.status !== "all"
-      ? eq(vocabularyReviewsTable.status, params.status)
-      : undefined;
-    const reviews = await db
+    const filters = [];
+    if (params.status && params.status !== "all") {
+      filters.push(eq(vocabularyReviewsTable.status, params.status));
+    }
+    if (params.reviewType) {
+      filters.push(eq(vocabularyReviewsTable.reviewType, params.reviewType));
+    }
+    if (params.search?.trim()) {
+      const search = `%${params.search.trim()}%`;
+      filters.push(
+        or(
+          ilike(vocabularyReviewsTable.title, search),
+          ilike(vocabularyReviewsTable.detail, search),
+          ilike(vocabularyReviewsTable.identifier, search),
+        ),
+      );
+    }
+    const where = filters.length ? and(...filters) : undefined;
+    const sortColumn = {
+      createdAt: vocabularyReviewsTable.createdAt,
+      reviewType: vocabularyReviewsTable.reviewType,
+      status: vocabularyReviewsTable.status,
+      identifier: vocabularyReviewsTable.identifier,
+      title: vocabularyReviewsTable.title,
+    }[params.sort];
+    const order = params.direction === "asc" ? asc(sortColumn) : desc(sortColumn);
+    const offset = (params.page - 1) * params.pageSize;
+    const [reviews, [{ total }]] = await Promise.all([
+      db
       .select()
       .from(vocabularyReviewsTable)
       .where(where)
-      .orderBy(asc(vocabularyReviewsTable.status), desc(vocabularyReviewsTable.createdAt));
-    res.json(ListVocabularyReviewsResponse.parse(await Promise.all(reviews.map(toReviewResponse))));
+      .orderBy(order)
+      .limit(params.pageSize)
+      .offset(offset),
+      db.select({ total: count() }).from(vocabularyReviewsTable).where(where),
+    ]);
+    res.json(ListVocabularyReviewsResponse.parse({
+      items: await Promise.all(reviews.map(toReviewResponse)),
+      page: params.page,
+      pageSize: params.pageSize,
+      total: Number(total),
+    }));
   } catch (error) {
     req.log.error({ error }, "Failed to list vocabulary reviews");
     next(error);
@@ -668,13 +742,47 @@ router.post("/vocabulary-reviews/:reviewId/decision", async (req, res, next) => 
       reviewer: "demo-operator",
       reason: input.note ?? null,
     };
+    const targetIds = Array.from(new Set(input.canonicalItemIds ?? []));
+    const targetCanonicals = targetIds.length
+      ? await db
+          .select()
+          .from(canonicalItemsTable)
+          .where(inArray(canonicalItemsTable.id, targetIds))
+      : [];
+    if (targetCanonicals.length !== targetIds.length) {
+      res.status(400).json({ error: "One or more canonical targets were not found" });
+      return;
+    }
     if (input.decision === "MERGE") {
-      const created = await createCanonicalFromLegacyIds(
-        candidateIds.map((candidate) => candidate.legacyItemId),
-        {},
-        reviewMetadata,
+      if (targetIds.length !== 1) {
+        res.status(400).json({ error: "MERGE requires exactly one canonical target" });
+        return;
+      }
+      await updateLineage(candidateIds.map((candidate) => candidate.legacyItemId), targetIds[0], reviewMetadata);
+      canonicalItemIds = targetIds;
+    } else if (input.decision === "CORRECT") {
+      if (targetIds.length !== 1) {
+        res.status(400).json({ error: "CORRECT requires exactly one canonical target" });
+        return;
+      }
+      const corrections = Object.fromEntries(
+        Object.entries({
+          nomenclature: input.nomenclature,
+          unit: input.unit,
+          pvms: input.pvms,
+          niv: input.niv,
+        }).filter(([, value]) => value !== undefined),
       );
-      canonicalItemIds = [created.id];
+      if (!Object.keys(corrections).length) {
+        res.status(400).json({ error: "CORRECT requires at least one canonical value" });
+        return;
+      }
+      await db
+        .update(canonicalItemsTable)
+        .set({ ...corrections, updatedAt: new Date() })
+        .where(eq(canonicalItemsTable.id, targetIds[0]));
+      await updateLineage(candidateIds.map((candidate) => candidate.legacyItemId), targetIds[0], reviewMetadata);
+      canonicalItemIds = targetIds;
     } else if (input.decision === "CREATE_CANONICAL") {
       const available = await db
         .select({ legacyItemId: legacyCanonicalLineageTable.legacyItemId })
@@ -691,14 +799,31 @@ router.post("/vocabulary-reviews/:reviewId/decision", async (req, res, next) => 
           canonicalItemIds.push(created.id);
         }
       }
+    } else if (input.decision === "RETIRE") {
+      const linked = candidateIds.length
+        ? await db
+            .select({ canonicalItemId: legacyCanonicalLineageTable.canonicalItemId })
+            .from(legacyCanonicalLineageTable)
+            .where(inArray(legacyCanonicalLineageTable.legacyItemId, candidateIds.map((candidate) => candidate.legacyItemId)))
+        : [];
+      const retireIds = Array.from(new Set([
+        ...targetIds,
+        ...linked.map((item) => item.canonicalItemId),
+      ]));
+      if (retireIds.length) {
+        await db
+          .update(canonicalItemsTable)
+          .set({ status: "retired", updatedAt: new Date() })
+          .where(inArray(canonicalItemsTable.id, retireIds));
+      }
     }
     const [updated] = await db
       .update(vocabularyReviewsTable)
       .set({
-        status: "resolved",
+        status: input.decision === "INVESTIGATE" ? "open" : "resolved",
         decision: input.decision,
         decisionNote: input.note ?? null,
-        resolvedAt: new Date(),
+        resolvedAt: input.decision === "INVESTIGATE" ? null : new Date(),
       })
       .where(eq(vocabularyReviewsTable.id, review.id))
       .returning();

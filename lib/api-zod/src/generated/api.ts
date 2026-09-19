@@ -432,11 +432,27 @@ export const GetCanonicalItemResponse = zod.object({
 /**
  * @summary List vocabulary review records
  */
+export const listVocabularyReviewsQuerySortDefault = `createdAt`;
+export const listVocabularyReviewsQueryDirectionDefault = `desc`;
+export const listVocabularyReviewsQueryPageDefault = 1;
+
+export const listVocabularyReviewsQueryPageSizeDefault = 25;
+export const listVocabularyReviewsQueryPageSizeMax = 100;
+
+
+
 export const ListVocabularyReviewsQueryParams = zod.object({
-  "status": zod.enum(['open', 'resolved', 'all']).optional()
+  "search": zod.coerce.string().optional(),
+  "status": zod.enum(['open', 'resolved', 'all']).optional(),
+  "reviewType": zod.coerce.string().optional(),
+  "sort": zod.enum(['createdAt', 'reviewType', 'status', 'identifier', 'title']).default(listVocabularyReviewsQuerySortDefault),
+  "direction": zod.enum(['asc', 'desc']).default(listVocabularyReviewsQueryDirectionDefault),
+  "page": zod.coerce.number().int().min(1).default(listVocabularyReviewsQueryPageDefault),
+  "pageSize": zod.coerce.number().int().min(1).max(listVocabularyReviewsQueryPageSizeMax).default(listVocabularyReviewsQueryPageSizeDefault)
 })
 
-export const ListVocabularyReviewsResponseItem = zod.object({
+export const ListVocabularyReviewsResponse = zod.object({
+  "items": zod.array(zod.object({
   "id": zod.string(),
   "importId": zod.string(),
   "reviewType": zod.string(),
@@ -473,8 +489,11 @@ export const ListVocabularyReviewsResponseItem = zod.object({
   "echs": zod.number().nullable()
 }))
 }))
+})),
+  "page": zod.number().int(),
+  "pageSize": zod.number().int(),
+  "total": zod.number().int()
 })
-export const ListVocabularyReviewsResponse = zod.array(ListVocabularyReviewsResponseItem)
 
 
 /**
@@ -488,7 +507,11 @@ export const DecideVocabularyReviewBody = zod.object({
   "decision": zod.enum(['MERGE', 'KEEP_SEPARATE', 'CORRECT', 'RETIRE', 'CREATE_CANONICAL', 'INVESTIGATE']),
   "note": zod.string().optional(),
   "canonicalItemIds": zod.array(zod.string()).optional(),
-  "sourceColumnStart": zod.number().int().optional()
+  "sourceColumnStart": zod.number().int().optional(),
+  "nomenclature": zod.string().nullish(),
+  "unit": zod.string().nullish(),
+  "pvms": zod.string().nullish(),
+  "niv": zod.string().nullish()
 })
 
 export const DecideVocabularyReviewResponse = zod.object({

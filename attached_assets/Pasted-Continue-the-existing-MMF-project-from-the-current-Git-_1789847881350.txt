@@ -1,0 +1,261 @@
+Continue the existing MMF project from the current Git state.
+
+IMPORTANT:
+The Stage 2 DATA FOUNDATION is already implemented and verified.
+
+Do NOT audit the project.
+Do NOT reread the documentation.
+Do NOT rediscover the architecture.
+Do NOT rebuild the data layer.
+Do NOT touch unrelated code.
+
+We are now implementing ONE bounded ticket:
+
+# STAGE 2 — VOCABULARY REVIEW WORKFLOW
+
+Your job is to make the existing vocabulary review records actionable through the existing application.
+
+==================================================
+1. USE THE EXISTING DATA LAYER
+==================================================
+
+The previous ticket already implemented:
+
+- persistent Legacy Items
+- full source-row persistence
+- specification/PVMS/NIV provenance
+- Canonical Items
+- Legacy → Canonical lineage
+- lineage review metadata
+- deterministic vocabulary review records
+
+Use those existing models, migrations and APIs.
+
+Do not recreate them.
+
+==================================================
+2. REVIEW QUEUE
+==================================================
+
+Implement the review queue using the existing review records.
+
+Support these issue types:
+
+- EXACT_DUPLICATE
+- PROBABLE_DUPLICATE
+- IDENTIFIER_CONFLICT
+- MISSING_IDENTIFIER
+- OBSOLETE_CANDIDATE
+- NEW_ITEM
+
+The existing 9 identifier-conflict groups should appear as actionable records.
+
+Do not hard-code those conflicts.
+
+==================================================
+3. REVIEW SCREEN
+==================================================
+
+Create/complete the desktop Vocabulary Review screen.
+
+It must provide:
+
+- review queue
+- search
+- issue-type filter
+- status filter
+- sorting
+- pagination
+- clear status
+- useful row actions
+
+Each review item should show enough information to understand the issue without leaving the workflow.
+
+For identifier conflicts, show records side-by-side.
+
+Include where available:
+
+- identifier
+- nomenclature
+- specification
+- unit
+- PVMS
+- NIV
+- DGLP
+- ECHS
+- department(s)
+- import
+- worksheet
+- source row
+
+==================================================
+4. REVIEW ACTIONS
+==================================================
+
+Implement these actions against the existing data model:
+
+- Merge
+- Keep Separate
+- Correct
+- Retire
+- Create Canonical
+- Investigate
+
+Rules:
+
+MERGE
+- require an explicit canonical target
+- create/update lineage
+- preserve every legacy record
+- record reviewer/time/reason
+
+KEEP SEPARATE
+- do not merge anything
+- record the decision
+- preserve the review history
+
+CORRECT
+- preserve original legacy value
+- update/create the appropriate canonical value
+- record decision/reason
+
+RETIRE
+- never delete the source record
+- change status appropriately
+- preserve history
+
+CREATE CANONICAL
+- create a canonical item
+- establish lineage where appropriate
+- preserve the legacy record
+
+INVESTIGATE
+- leave unresolved
+- record the decision/history
+
+Do not silently alter or delete legacy source data.
+
+==================================================
+5. UI
+==================================================
+
+Desktop only.
+
+Use the existing application's design system.
+
+This must look like a professional hospital governance application, not a generic CRUD page.
+
+Use:
+
+- readable dense tables
+- clear status badges
+- strong page hierarchy
+- useful filters
+- appropriate confirmation dialogs
+- clear success/error feedback
+- loading/empty/error states
+
+Do NOT redesign the command centre.
+
+Do NOT create mobile layouts.
+
+==================================================
+6. SECURITY / DATA INTEGRITY
+==================================================
+
+Use the existing server/API authorization patterns.
+
+Do not rely solely on hiding buttons in the UI.
+
+Review actions must be validated server-side.
+
+Never allow a review action to destroy the underlying legacy record.
+
+==================================================
+7. TESTING
+==================================================
+
+Add only targeted tests for this ticket:
+
+- review queue retrieval
+- identifier conflict display/data
+- Merge
+- Keep Separate
+- Correct
+- Retire
+- Create Canonical
+- Investigate
+- legacy record preservation
+- lineage creation/update
+- invalid review actions rejected
+
+Run:
+
+- relevant tests
+- typecheck
+- production build
+
+Do not run a repository-wide audit.
+
+==================================================
+8. BATON
+==================================================
+
+Do NOT create a new project-state version merely because this is a new Replit instance.
+
+At completion, update the CURRENT project-state baton to reflect the actual state.
+
+Record:
+
+COMPLETED
+- Vocabulary Review Workflow
+
+IMPLEMENTED
+- review queue
+- filters/search
+- review detail
+- supported review actions
+- lineage updates
+- legacy preservation
+
+PARTIAL / PLANNED
+- anything genuinely incomplete
+
+NEXT TICKET
+The next concrete Stage 2 task should be:
+
+Canonical Vocabulary screen:
+search/filter/sort/pagination + canonical detail + lineage/history.
+
+TESTS
+Record only tests actually run.
+
+GIT
+Record final commit hash.
+
+==================================================
+9. COMMIT
+==================================================
+
+When this ticket is working and verified:
+
+git add -A
+git commit -m "feat: implement vocabulary review workflow"
+
+==================================================
+CRITICAL OPERATING RULE
+==================================================
+
+DO NOT spend credits reading project documentation or performing broad analysis.
+
+The previous agents have already done the discovery.
+
+Open the existing review models/API and current relevant UI.
+
+Then implement this ticket immediately.
+
+If something is already implemented, verify it briefly and move to the missing part.
+
+Do not rewrite working code.
+
+START CODING NOW.

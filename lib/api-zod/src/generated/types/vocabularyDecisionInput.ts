@@ -12,4 +12,12 @@ export interface VocabularyDecisionInput {
   note?: string;
   canonicalItemIds?: string[];
   sourceColumnStart?: number;
+  /** @nullable */
+  nomenclature?: string | null;
+  /** @nullable */
+  unit?: string | null;
+  /** @nullable */
+  pvms?: string | null;
+  /** @nullable */
+  niv?: string | null;
 }

@@ -280,6 +280,13 @@ export interface VocabularyReview {
   candidateRecords: LegacyItem[];
 }
 
+export interface VocabularyReviewPage {
+  items: VocabularyReview[];
+  page: number;
+  pageSize: number;
+  total: number;
+}
+
 export type VocabularyDecisionInputDecision = typeof VocabularyDecisionInputDecision[keyof typeof VocabularyDecisionInputDecision];
 
 
@@ -297,6 +304,14 @@ export interface VocabularyDecisionInput {
   note?: string;
   canonicalItemIds?: string[];
   sourceColumnStart?: number;
+  /** @nullable */
+  nomenclature?: string | null;
+  /** @nullable */
+  unit?: string | null;
+  /** @nullable */
+  pvms?: string | null;
+  /** @nullable */
+  niv?: string | null;
 }
 
 export type OverviewCycle = {
@@ -367,7 +382,20 @@ pageSize?: number;
 };
 
 export type ListVocabularyReviewsParams = {
+search?: string;
 status?: ListVocabularyReviewsStatus;
+reviewType?: string;
+sort?: ListVocabularyReviewsSort;
+direction?: ListVocabularyReviewsDirection;
+/**
+ * @minimum 1
+ */
+page?: number;
+/**
+ * @minimum 1
+ * @maximum 100
+ */
+pageSize?: number;
 };
 
 export type ListVocabularyReviewsStatus = typeof ListVocabularyReviewsStatus[keyof typeof ListVocabularyReviewsStatus];
@@ -377,5 +405,24 @@ export const ListVocabularyReviewsStatus = {
   open: 'open',
   resolved: 'resolved',
   all: 'all',
+} as const;
+
+export type ListVocabularyReviewsSort = typeof ListVocabularyReviewsSort[keyof typeof ListVocabularyReviewsSort];
+
+
+export const ListVocabularyReviewsSort = {
+  createdAt: 'createdAt',
+  reviewType: 'reviewType',
+  status: 'status',
+  identifier: 'identifier',
+  title: 'title',
+} as const;
+
+export type ListVocabularyReviewsDirection = typeof ListVocabularyReviewsDirection[keyof typeof ListVocabularyReviewsDirection];
+
+
+export const ListVocabularyReviewsDirection = {
+  asc: 'asc',
+  desc: 'desc',
 } as const;
 
