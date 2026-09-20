@@ -1,0 +1,33 @@
+CONTINUE STAGE 3 — TICKET 2 RUNTIME VERIFICATION
+We are a new Replit instance continuing the same repository.
+The previous instance already implemented Stage 3 Ticket 2 — Department Workspace. Do not rebuild it.
+Start immediately by reading only the existing project-state baton and checking the current Git status/log. Do not perform a broad repository audit or reread the full documentation.
+The previous instance reported:
+Department Workspace implemented
+server contract/API wired
+generated API client regenerated
+frontend typecheck passed
+API typecheck passed
+production web build passed
+diff validation passed
+live verification was blocked because the configured database was missing the existing mmf_imports table
+the previous instance was about to run: pnpm --filter @workspace/db run push
+Your bounded task is to finish Ticket 2, not redesign it.
+Confirm whether the Department Workspace implementation is already present in the repository. If it is, leave it intact.
+Apply the existing repository database schema using: pnpm --filter @workspace/db run push
+Start/restart the managed API and web workflows as needed.
+Verify the actual runtime:
+API health = 200
+departments endpoint returns real persisted department IDs
+Department Workspace loads
+selecting a real department works
+ACTIVE assigned canonical items appear
+REMOVED assignments are excluded
+item detail shows canonical, department, and lineage/source information
+search/filter works
+no application errors in browser console
+If a runtime error occurs, fix only the specific error preventing this verification. Do not broaden the ticket.
+Update the existing project-state baton to record Ticket 2 as IMPLEMENTED/VERIFIED.
+Commit the completed work as: feat: implement department workspace
+Do not implement: MMF editing, DGLP/ECHS quantity editing, revision history, proposals, common-use MMF, submission, benchmark prices, RBAC, freeze/release, amendments, or export.
+Do not spend credits explaining a plan. Start with Git status/log and the schema push.
