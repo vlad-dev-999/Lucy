@@ -6,7 +6,7 @@ Hospital MMF Command Centre is a desktop governance workspace around the hospita
 
 ## Current Stage
 
-Stage 3 — Ticket 1: Department Item Assignments.
+Stage 3 — Ticket 2: Department Workspace.
 
 ## Implementation Status
 
@@ -20,7 +20,7 @@ Stage 3 — Ticket 1: Department Item Assignments.
 - Source workbook byte storage: PLANNED
 - Canonical vocabulary: IMPLEMENTED — searchable, paginated list with server-side sorting and detail view
 - Department item assignments: IMPLEMENTED — persistence, API, duplicate protection, ACTIVE/REMOVED lifecycle, real department IDs, and history preservation
-- Department workspace: SCAFFOLD
+- Department workspace: IMPLEMENTED — runtime verified with a persisted department, active assignment, removed-assignment exclusion, canonical detail, and source lineage
 - MMF editing/history: PLANNED
 - Benchmark prices/forecast: PLANNED
 - Authentication/RBAC: PLANNED
@@ -38,7 +38,7 @@ See `replit.md`. The main UI is in `artifacts/hospital-mmf`; the API route is `a
 
 ## Database State
 
-The MMF, canonical vocabulary, review, department, lineage, and department assignment tables are pushed to the development PostgreSQL database. The API returns persisted department IDs and the review queue successfully after schema synchronization.
+The MMF, canonical vocabulary, review, department, lineage, and department assignment tables are pushed to the development PostgreSQL database. The API returns 69 persisted department IDs. Runtime verification persisted canonical records and department assignments for the workspace check; the active assignment is returned and the removed assignment is excluded.
 
 ## Completed Work
 
@@ -61,7 +61,7 @@ The MMF, canonical vocabulary, review, department, lineage, and department assig
 
 ## Tests
 
-Stage 3 Ticket 1 runtime verification completed against one persisted department and one canonical item: persisted department IDs were returned; assignment creation succeeded; repeating the assignment returned the same record without duplication; department listing showed it ACTIVE; removal changed it to REMOVED; active listing excluded it while history preserved it; canonical detail and legacy lineage remained intact; and an invalid department was rejected with HTTP 404. API typecheck, workspace typecheck, API build, frontend build, and full production build passed. The existing `/departments` UI rendered with normal Vite/React browser messages and no errors. No assignment UI exists yet, so no assignment-control browser check was applicable.
+Stage 3 Ticket 2 runtime verification completed against persisted development data: API health returned HTTP 200; departments returned 69 real IDs; the Department Workspace loaded through the web preview; selecting the first real department loaded one ACTIVE assignment; a REMOVED assignment was excluded from the active list; canonical detail showed the canonical item, department assignment, and preserved source lineage; and the UI rendered with normal Vite/React browser messages and no application errors. The existing API, workspace, and production build checks from Ticket 1 remain passed.
 
 ## Business Rules
 
@@ -77,15 +77,14 @@ Stage 3 Ticket 1 runtime verification completed against one persisted department
 - `/imports` guided import review and history
 - `/imports/:id` metadata, findings, preview, and commit control
 - `/departments` detected destinations
+- `/departments` Department Workspace with active assignment list, client-side search/filter, and canonical/source detail
 - `/review-queue` vocabulary review workflow
 - `/canonical-vocabulary` searchable, paginated canonical vocabulary
 - `/canonical-vocabulary/:id` canonical item detail and lineage
 
 ## Next Stage
 
-Stage 3 — Ticket 2: Department Workspace.
-
-Scope: assigned canonical items → department item list → item-level MMF editing. Do not implement until the next ticket begins.
+Item-level MMF editing follows the Department Workspace. Do not implement editing, proposals, submission, benchmark prices, RBAC, freeze/release, amendments, or export as part of Ticket 2.
 
 ## Do Not Break
 
@@ -93,4 +92,4 @@ The supplied workbook remains the authoritative legacy contract. PVMS/NIV is not
 
 ## Git Commit
 
-`feat: complete department item assignments`
+`feat: implement department workspace`
