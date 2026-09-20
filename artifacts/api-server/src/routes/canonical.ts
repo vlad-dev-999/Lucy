@@ -198,6 +198,10 @@ type DepartmentAssignmentRow = {
   departmentName: string;
   canonicalItemId: string;
   canonicalNumber: number;
+  nomenclature: string | null;
+  pvms: string | null;
+  niv: string | null;
+  unit: string | null;
   status: string;
   sourceImportId: string | null;
   source: string | null;
@@ -212,6 +216,10 @@ function toDepartmentAssignmentResponse(row: DepartmentAssignmentRow) {
     departmentName: row.departmentName,
     canonicalItemId: row.canonicalItemId,
     canonicalId: canonicalCode(row.canonicalNumber),
+    nomenclature: row.nomenclature,
+    pvms: row.pvms,
+    niv: row.niv,
+    unit: row.unit,
     status: row.status,
     sourceImportId: row.sourceImportId,
     source: row.source,
@@ -228,6 +236,10 @@ async function getDepartmentAssignment(id: string) {
       departmentName: departmentEntitiesTable.name,
       canonicalItemId: departmentItemAssignmentsTable.canonicalItemId,
       canonicalNumber: canonicalItemsTable.canonicalNumber,
+      nomenclature: canonicalItemsTable.nomenclature,
+      pvms: canonicalItemsTable.pvms,
+      niv: canonicalItemsTable.niv,
+      unit: canonicalItemsTable.unit,
       status: departmentItemAssignmentsTable.status,
       sourceImportId: departmentItemAssignmentsTable.sourceImportId,
       source: departmentItemAssignmentsTable.source,
@@ -256,6 +268,10 @@ async function listAssignmentsForCanonical(canonicalItemId: string) {
       departmentName: departmentEntitiesTable.name,
       canonicalItemId: departmentItemAssignmentsTable.canonicalItemId,
       canonicalNumber: canonicalItemsTable.canonicalNumber,
+      nomenclature: canonicalItemsTable.nomenclature,
+      pvms: canonicalItemsTable.pvms,
+      niv: canonicalItemsTable.niv,
+      unit: canonicalItemsTable.unit,
       status: departmentItemAssignmentsTable.status,
       sourceImportId: departmentItemAssignmentsTable.sourceImportId,
       source: departmentItemAssignmentsTable.source,
@@ -284,6 +300,10 @@ async function listAssignmentsForDepartment(departmentId: string) {
       departmentName: departmentEntitiesTable.name,
       canonicalItemId: departmentItemAssignmentsTable.canonicalItemId,
       canonicalNumber: canonicalItemsTable.canonicalNumber,
+      nomenclature: canonicalItemsTable.nomenclature,
+      pvms: canonicalItemsTable.pvms,
+      niv: canonicalItemsTable.niv,
+      unit: canonicalItemsTable.unit,
       status: departmentItemAssignmentsTable.status,
       sourceImportId: departmentItemAssignmentsTable.sourceImportId,
       source: departmentItemAssignmentsTable.source,
@@ -299,7 +319,12 @@ async function listAssignmentsForDepartment(departmentId: string) {
       canonicalItemsTable,
       eq(departmentItemAssignmentsTable.canonicalItemId, canonicalItemsTable.id),
     )
-    .where(eq(departmentItemAssignmentsTable.departmentId, departmentId))
+    .where(
+      and(
+        eq(departmentItemAssignmentsTable.departmentId, departmentId),
+        eq(departmentItemAssignmentsTable.status, "ACTIVE"),
+      ),
+    )
     .orderBy(asc(canonicalItemsTable.canonicalNumber));
   return rows.map(toDepartmentAssignmentResponse);
 }

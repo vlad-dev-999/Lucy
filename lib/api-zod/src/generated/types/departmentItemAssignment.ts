@@ -13,6 +13,14 @@ export interface DepartmentItemAssignment {
   departmentName: string;
   canonicalItemId: string;
   canonicalId: string;
+  /** @nullable */
+  nomenclature: string | null;
+  /** @nullable */
+  pvms: string | null;
+  /** @nullable */
+  niv: string | null;
+  /** @nullable */
+  unit: string | null;
   status: DepartmentItemAssignmentStatus;
   /** @nullable */
   sourceImportId: string | null;

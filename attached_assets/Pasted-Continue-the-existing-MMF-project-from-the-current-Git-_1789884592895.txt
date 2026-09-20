@@ -1,0 +1,257 @@
+Continue the existing MMF project from the current Git state.
+
+STAGE 3 — TICKET 2
+DEPARTMENT WORKSPACE
+
+Stage 3 Ticket 1 — Department Item Assignments — is COMPLETE and verified.
+
+Do NOT revisit it.
+Do NOT audit the repository.
+Do NOT reread the documentation.
+Do NOT redesign existing screens.
+
+The existing assignment foundation already provides:
+
+- Canonical Item ↔ Department assignments
+- real persisted department IDs
+- assignment persistence
+- duplicate protection
+- ACTIVE / REMOVED lifecycle
+- historical preservation
+- canonical lineage preservation
+- assignment API
+
+The current Departments page has no assignment controls. That is intentional.
+
+Your job now is to build the actual Department Workspace that consumes those assignments.
+
+==================================================
+CORE WORKFLOW
+==================================================
+
+Department
+    ↓
+Assigned Canonical Items
+    ↓
+Department MMF Workspace
+
+The workspace must show ONLY canonical items actively assigned to the selected department.
+
+Do not duplicate canonical item records.
+
+Do not recreate the assignment system.
+
+Use the existing assignment API.
+
+==================================================
+DEPARTMENT WORKSPACE
+==================================================
+
+Create a professional desktop-first Department Workspace.
+
+The user should be able to:
+
+1. Select an existing department.
+2. See its active assigned canonical items.
+3. Search/filter the department's items.
+4. Open an item.
+5. See the canonical item information.
+6. See existing legacy/source context where useful.
+7. See the current departmental MMF values when available.
+
+For the initial implementation, focus on the workspace structure and item presentation.
+
+DO NOT yet implement the full MMF editing workflow unless it is required for the workspace to function.
+
+That will be the next ticket.
+
+==================================================
+TABLE
+==================================================
+
+Use a dense, readable table.
+
+Suggested columns:
+
+- Canonical ID
+- Nomenclature
+- PVMS
+- NIV
+- Unit
+- DGLP MMF
+- ECHS MMF
+- Status
+- Actions
+
+If MMF values are not yet stored at the department-assignment level, do NOT invent them.
+
+Display the fields that actually exist and clearly mark MMF editing as the next workflow stage.
+
+==================================================
+ITEM DETAIL
+==================================================
+
+Opening a department item should show:
+
+- canonical information
+- department
+- assignment status
+- legacy/source lineage
+- existing review/history information
+
+Maintain the distinction between:
+
+CANONICAL ITEM
+LEGACY SOURCE
+DEPARTMENT ASSIGNMENT
+DEPARTMENT MMF
+
+Do not merge these concepts.
+
+==================================================
+IMPORTANT BUSINESS RULE
+==================================================
+
+The department workspace must not treat the hospital-wide canonical vocabulary as the department's working set.
+
+Only ACTIVE assignments for the selected department belong in the workspace.
+
+REMOVED assignments must not appear as active department items.
+
+==================================================
+UI
+==================================================
+
+Desktop PC only.
+
+Use the existing application's design system.
+
+This should look like the central working screen for a hospital department preparing its MMF.
+
+Use:
+
+- clear department selector
+- clear page header
+- useful search/filter controls
+- readable dense table
+- clear status
+- sensible row actions
+- loading state
+- empty state
+- error state
+
+Avoid:
+- giant cards
+- decorative dashboards
+- meaningless charts
+- generic SaaS styling
+- mobile layouts
+
+==================================================
+DO NOT IMPLEMENT YET
+==================================================
+
+Do NOT implement:
+
+- MMF editing
+- DGLP/ECHS quantity editing
+- revision history for MMF
+- new item proposals
+- common-use MMF
+- department submission
+- benchmark prices
+- freeze/release
+- RBAC administration
+- export
+
+Those are later tickets.
+
+==================================================
+API
+==================================================
+
+Reuse the existing assignment/canonical APIs.
+
+Only add the minimal endpoint/query needed to retrieve the active canonical items for a department.
+
+Server-side filtering is preferred.
+
+Do not introduce duplicate data models.
+
+==================================================
+TESTING
+==================================================
+
+Run only targeted checks:
+
+- relevant API tests
+- frontend typecheck
+- API typecheck if backend changed
+- production build
+
+Then perform a minimal browser verification:
+
+1. Open Departments/Department Workspace.
+2. Select a real existing department.
+3. Confirm active assigned canonical items appear.
+4. Confirm REMOVED assignments do not appear.
+5. Search/filter the list.
+6. Open an item.
+7. Confirm canonical + department + lineage information appears.
+8. Confirm browser console has no application errors.
+
+Do not perform a broad repository audit.
+
+==================================================
+BATON
+==================================================
+
+Update the CURRENT project-state baton.
+
+Record:
+
+CURRENT STAGE:
+Stage 3 — Department Workspace
+
+IMPLEMENTED:
+Only what is actually completed.
+
+NEXT TICKET:
+Department MMF Editing
+
+Next workflow:
+
+Department Workspace
+→ edit item
+→ DGLP MMF
+→ ECHS MMF
+→ save revision
+
+TESTS:
+Record actual checks.
+
+KNOWN LIMITATIONS:
+Only genuine limitations.
+
+==================================================
+COMMIT
+==================================================
+
+When verified:
+
+git add -A
+git commit -m "feat: implement department workspace"
+
+Ensure the working tree is clean.
+
+==================================================
+CRITICAL
+==================================================
+
+Do not spend credits on discovery.
+
+The project has already been inspected extensively.
+
+Open the existing Departments page, assignment API, and relevant canonical UI.
+
+Then start implementing the Department Workspace immediately.

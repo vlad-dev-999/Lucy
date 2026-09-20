@@ -631,7 +631,7 @@ components:
           type: integer
     DepartmentItemAssignment:
       type: object
-      required: [id, departmentId, departmentName, canonicalItemId, canonicalId, status, sourceImportId, source, createdAt, updatedAt]
+      required: [id, departmentId, departmentName, canonicalItemId, canonicalId, nomenclature, pvms, niv, unit, status, sourceImportId, source, createdAt, updatedAt]
       properties:
         id:
           type: string
@@ -643,6 +643,14 @@ components:
           type: string
         canonicalId:
           type: string
+        nomenclature:
+          type: ["string", "null"]
+        pvms:
+          type: ["string", "null"]
+        niv:
+          type: ["string", "null"]
+        unit:
+          type: ["string", "null"]
         status:
           type: string
           enum: [ACTIVE, REMOVED]

@@ -37,6 +37,7 @@ import {
   getGetImportQueryKey,
   getGetCanonicalItemQueryKey,
   getGetOverviewQueryKey,
+  getListDepartmentAssignmentsQueryKey,
   getListImportsQueryKey,
   getListVocabularyReviewsQueryKey,
   useDecideVocabularyReview,
@@ -46,11 +47,12 @@ import {
   useGetImport,
   useGetOverview,
   useListCanonicalItems,
+  useListDepartmentAssignments,
   useListDepartments,
   useListImports,
   useListVocabularyReviews,
 } from '@workspace/api-client-react';
-import type { CanonicalItem, CanonicalItemDetail, Department, DepartmentInput, ImportSummary, LegacyItem, LegacyRowInput, ListCanonicalItemsParams, ListVocabularyReviewsParams, PreviewRow, QualityIssue, VocabularyDecisionInput, VocabularyDecisionInputDecision, VocabularyReview } from '@workspace/api-client-react';
+import type { CanonicalItem, CanonicalItemDetail, Department, DepartmentInput, DepartmentItemAssignment, ImportSummary, LegacyItem, LegacyRowInput, ListCanonicalItemsParams, ListVocabularyReviewsParams, PreviewRow, QualityIssue, VocabularyDecisionInput, VocabularyDecisionInputDecision, VocabularyReview } from '@workspace/api-client-react';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -595,17 +597,126 @@ function PreviewTable({ rows }: { rows: PreviewRow[] }) {
 
 function DepartmentsPage() {
   const departmentsQuery = useListDepartments();
+  const [selectedDepartmentId, setSelectedDepartmentId] = useState('');
   const [search, setSearch] = useState('');
-  const departments = useMemo(() => (departmentsQuery.data ?? []).filter((department) => department.name.toLowerCase().includes(search.toLowerCase())), [departmentsQuery.data, search]);
+  const [selectedAssignmentId, setSelectedAssignmentId] = useState<string | null>(null);
+  const departments = departmentsQuery.data ?? [];
+  const selectedDepartment = departments.find((department) => department.id === selectedDepartmentId) ?? null;
+  const assignmentsQuery = useListDepartmentAssignments(selectedDepartmentId, {
+    query: {
+      queryKey: getListDepartmentAssignmentsQueryKey(selectedDepartmentId),
+      enabled: Boolean(selectedDepartmentId),
+    },
+  });
+  const assignments = assignmentsQuery.data ?? [];
+  const filteredAssignments = useMemo(() => {
+    const normalizedSearch = search.trim().toLowerCase();
+    if (!normalizedSearch) return assignments;
+    return assignments.filter((assignment) => [
+      assignment.canonicalId,
+      assignment.nomenclature,
+      assignment.pvms,
+      assignment.niv,
+      assignment.unit,
+    ].some((value) => value?.toLowerCase().includes(normalizedSearch)));
+  }, [assignments, search]);
+  const selectedAssignment = assignments.find((assignment) => assignment.id === selectedAssignmentId) ?? null;
+  const detailQuery = useGetCanonicalItem(selectedAssignment?.canonicalItemId ?? '', {
+    query: {
+      queryKey: getGetCanonicalItemQueryKey(selectedAssignment?.canonicalItemId ?? ''),
+      enabled: Boolean(selectedAssignment?.canonicalItemId),
+    },
+  });
+
+  useEffect(() => {
+    if (!selectedDepartmentId && departments.length) setSelectedDepartmentId(departments[0].id);
+  }, [departments, selectedDepartmentId]);
+
+  useEffect(() => {
+    if (!assignments.length) {
+      setSelectedAssignmentId(null);
+      return;
+    }
+    if (!assignments.some((assignment) => assignment.id === selectedAssignmentId)) {
+      setSelectedAssignmentId(assignments[0].id);
+    }
+  }, [assignments, selectedAssignmentId]);
+
   return <div className="mx-auto max-w-[1440px] rise-in">
-    <PageHeading eyebrow="Destinations" title="Departments" description="Detected departmental destinations from the active legacy workbook, ready for allocation review." action={<div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={15} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search departments" className="h-10 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 text-xs outline-none ring-[#9ed8c7] placeholder:text-slate-400 focus:ring-2 sm:w-56" data-testid="input-search-departments" /></div>} />
-    {departmentsQuery.isLoading ? <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3"><div className="skeleton h-44 rounded-xl" /><div className="skeleton h-44 rounded-xl" /><div className="skeleton h-44 rounded-xl" /></div> : departmentsQuery.isError ? <QueryState error={departmentsQuery.error} onRetry={() => void departmentsQuery.refetch()} label="departments" /> : !departmentsQuery.data?.length ? <SectionCard title="Department destinations"><EmptyState title="No departments detected" detail="Commit a validated baseline to populate departmental destinations." action={<Link href="/imports" className="rounded-lg bg-[#244c65] px-3 py-2 text-xs font-bold text-white" data-testid="link-review-imports-empty">Review imports</Link>} /></SectionCard> : <><div className="mb-5 flex items-center gap-2 text-xs text-slate-500"><Badge tone="info">{departments.length} shown</Badge><span>from {departmentsQuery.data.length} detected destinations</span></div><div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{departments.map((department, index) => <DepartmentCard department={department} index={index} key={department.id} />)}</div></>}
+    <PageHeading eyebrow="Department workspace" title={selectedDepartment?.name ?? 'Department workspace'} description="Work only with canonical items actively assigned to the selected hospital department. MMF editing follows in the next workflow stage." />
+    {departmentsQuery.isLoading ? <div className="skeleton h-24 rounded-xl" /> : departmentsQuery.isError ? <QueryState error={departmentsQuery.error} onRetry={() => void departmentsQuery.refetch()} label="departments" /> : !departments.length ? <SectionCard title="Department workspace"><EmptyState title="No departments detected" detail="Commit a validated baseline to populate departmental destinations." action={<Link href="/imports" className="rounded-lg bg-[#244c65] px-3 py-2 text-xs font-bold text-white" data-testid="link-review-imports-empty">Review imports</Link>} /></SectionCard> : <>
+      <SectionCard title="Select department" eyebrow="Active assignment scope">
+        <div className="flex items-center gap-5 px-5 py-4">
+          <div className="min-w-[320px]">
+            <label htmlFor="select-department" className="font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">Department</label>
+            <select id="select-department" value={selectedDepartmentId} onChange={(event) => { setSelectedDepartmentId(event.target.value); setSearch(''); setSelectedAssignmentId(null); }} className="mt-2 h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-[#1e3447] outline-none focus:ring-2 focus:ring-[#9ed8c7]" data-testid="select-department">
+              {departments.map((department) => <option value={department.id} key={department.id}>{department.name}</option>)}
+            </select>
+          </div>
+          <div className="border-l border-slate-100 pl-5">
+            <div className="font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">Scope</div>
+            <div className="mt-2 flex items-center gap-2"><Badge tone="success"><CheckCircle2 size={12} /> Active assignments only</Badge><span className="text-xs text-slate-500">{selectedDepartment?.sourceColumnStart ? `Source column ${selectedDepartment.sourceColumnStart}` : 'Department source'}</span></div>
+          </div>
+        </div>
+      </SectionCard>
+      <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1.55fr)_minmax(360px,.85fr)]">
+        <SectionCard title="Assigned canonical items" eyebrow={`${filteredAssignments.length} shown · ${assignments.length} active assignments`} action={<div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search ID, name, PVMS or NIV" className="h-9 w-64 rounded-lg border border-slate-200 bg-white pl-8 pr-3 text-[11px] outline-none placeholder:text-slate-400 focus:ring-2 focus:ring-[#9ed8c7]" data-testid="input-search-department-items" /></div>}>
+          {assignmentsQuery.isLoading ? <div className="space-y-3 p-5"><div className="skeleton h-10 rounded" /><div className="skeleton h-10 rounded" /><div className="skeleton h-10 rounded" /><div className="skeleton h-10 rounded" /></div> : assignmentsQuery.isError ? <div className="p-5"><QueryState error={assignmentsQuery.error} onRetry={() => void assignmentsQuery.refetch()} label="department items" /></div> : !assignments.length ? <EmptyState title="No active items assigned" detail="This department has no active canonical assignments yet. Removed assignments are retained in history but excluded from the workspace." /> : !filteredAssignments.length ? <EmptyState title="No matching items" detail="Try a different canonical ID, nomenclature, PVMS, NIV, or unit search." /> : <div className="overflow-x-auto">
+            <table className="w-full min-w-[820px] text-left" data-testid="table-department-items">
+              <thead className="bg-[#f8fbfb]"><tr className="border-b border-slate-100">{['Canonical ID', 'Nomenclature', 'PVMS', 'NIV', 'Unit', 'DGLP MMF', 'ECHS MMF', 'Status', 'Actions'].map((header) => <th className="whitespace-nowrap px-3 py-3 font-mono text-[9px] font-bold uppercase tracking-[0.1em] text-slate-400" key={header}>{header}</th>)}</tr></thead>
+              <tbody className="divide-y divide-slate-100">{filteredAssignments.map((assignment) => <tr key={assignment.id} className={`align-middle text-[11px] transition-colors hover:bg-[#fbfdfd] ${assignment.id === selectedAssignmentId ? 'bg-[#f2f8f8]' : ''}`} data-testid={`department-item-row-${assignment.id}`}>
+                <td className="whitespace-nowrap px-3 py-3 font-mono font-bold text-[#315d7f]">{assignment.canonicalId}</td>
+                <td className="max-w-[230px] truncate px-3 py-3 font-semibold text-[#1e3447]" title={assignment.nomenclature ?? undefined}>{assignment.nomenclature ?? '—'}</td>
+                <td className="whitespace-nowrap px-3 py-3 font-mono text-slate-600">{assignment.pvms ?? '—'}</td>
+                <td className="whitespace-nowrap px-3 py-3 font-mono text-slate-600">{assignment.niv ?? '—'}</td>
+                <td className="whitespace-nowrap px-3 py-3 text-slate-500">{assignment.unit ?? '—'}</td>
+                <td className="whitespace-nowrap px-3 py-3 text-slate-400">Not stored</td>
+                <td className="whitespace-nowrap px-3 py-3 text-slate-400">Not stored</td>
+                <td className="px-3 py-3"><Badge tone="success"><CheckCircle2 size={11} /> Active</Badge></td>
+                <td className="px-3 py-3"><button onClick={() => setSelectedAssignmentId(assignment.id)} className="inline-flex items-center gap-1 rounded-md border border-[#bdcfdf] px-2 py-1.5 font-semibold text-[#315d7f] hover:bg-[#eef4f9]" data-testid={`button-open-department-item-${assignment.id}`}>Open <ChevronRight size={13} /></button></td>
+              </tr>)}</tbody>
+            </table>
+          </div>}
+        </SectionCard>
+        <DepartmentItemDetail assignment={selectedAssignment} detailQuery={detailQuery} />
+      </div>
+    </>}
   </div>;
 }
 
-function DepartmentCard({ department, index }: { department: Department; index: number }) {
-  const palettes = ['bg-[#edf8f3] text-[#28725e]', 'bg-[#eef4f9] text-[#315d7f]', 'bg-[#fff7e8] text-[#8b641f]'];
-  return <div className="panel-shadow group rounded-xl border border-slate-200/90 bg-white p-5 transition-transform duration-200 hover:-translate-y-0.5" data-testid={`card-department-${department.id}`}><div className="flex items-start justify-between gap-4"><span className={`grid size-10 place-items-center rounded-xl font-mono text-xs font-bold ${palettes[index % palettes.length]}`}>{initials(department.name)}</span><Badge tone="success"><CheckCircle2 size={12} /> Detected</Badge></div><div className="mt-5 text-sm font-bold text-[#1e3447]">{department.name}</div><div className="mt-1 text-xs text-slate-500">Source column {department.sourceColumnStart}</div><div className="mt-5 flex items-end justify-between border-t border-slate-100 pt-4"><div><div className="font-mono text-2xl font-bold tracking-[-0.07em] text-[#1e3447]">{formatNumber(department.itemCount)}</div><div className="text-[10px] uppercase tracking-[0.1em] text-slate-400">Items mapped</div></div><ArrowRight className="text-slate-300 transition-transform group-hover:translate-x-1" size={17} /></div></div>;
+function DepartmentItemDetail({ assignment, detailQuery }: {
+  assignment: DepartmentItemAssignment | null;
+  detailQuery: {
+    data?: CanonicalItemDetail;
+    isLoading: boolean;
+    isError: boolean;
+    error?: unknown;
+    refetch: () => void;
+  };
+}) {
+  if (!assignment) return <SectionCard title="Item detail" eyebrow="Canonical → source → assignment"><EmptyState title="Select an item" detail="Open an assigned canonical item to inspect its governed values, department assignment, and preserved source lineage." /></SectionCard>;
+  if (detailQuery.isLoading) return <SectionCard title="Item detail" eyebrow="Loading canonical context"><div className="space-y-3 p-5"><div className="skeleton h-16 rounded-lg" /><div className="skeleton h-24 rounded-lg" /><div className="skeleton h-32 rounded-lg" /></div></SectionCard>;
+  if (detailQuery.isError || !detailQuery.data) return <SectionCard title="Item detail" eyebrow="Canonical context"><div className="p-5"><QueryState error={detailQuery.error} onRetry={() => void detailQuery.refetch()} label="item detail" /></div></SectionCard>;
+
+  const item = detailQuery.data;
+  const departmentalSource = item.legacyRecords.flatMap((record) => record.departments.filter((department) => department.name === assignment.departmentName));
+  const dglpValues = Array.from(new Set(departmentalSource.map((department) => department.dglp).filter((value): value is number => value !== null))).join(', ');
+  const echsValues = Array.from(new Set(departmentalSource.map((department) => department.echs).filter((value): value is number => value !== null))).join(', ');
+  return <SectionCard title="Item detail" eyebrow="Canonical → source → assignment" action={<Badge tone="success"><CheckCircle2 size={11} /> Assigned</Badge>}>
+    <div className="space-y-5 p-5">
+      <div><div className="font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-[#5e8194]">Canonical item</div><div className="mt-1 text-xl font-bold tracking-[-0.04em] text-[#1e3447]">{item.canonicalId}</div><div className="mt-1 text-xs leading-relaxed text-slate-500">{item.nomenclature ?? 'Unnamed canonical item'}</div></div>
+      <div className="grid gap-2 sm:grid-cols-2">
+        <DetailField label="PVMS" value={item.pvms} mono />
+        <DetailField label="NIV" value={item.niv} mono />
+        <DetailField label="Unit" value={item.unit} />
+        <DetailField label="Canonical status" value={item.status} />
+      </div>
+      <div className="border-t border-slate-100 pt-4"><div className="font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-[#5e8194]">Department assignment</div><div className="mt-3 grid gap-2 sm:grid-cols-2"><DetailField label="Department" value={assignment.departmentName} /><DetailField label="Assignment state" value={assignment.status} /><DetailField label="Assigned from" value={assignment.source ?? 'Not recorded'} /><DetailField label="Assignment date" value={formatDate(assignment.createdAt)} /></div></div>
+      <div className="border-t border-slate-100 pt-4"><div className="font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-[#5e8194]">Department MMF context</div><div className="mt-3 grid gap-2 sm:grid-cols-2"><DetailField label="DGLP MMF" value={dglpValues || 'Not yet stored'} /><DetailField label="ECHS MMF" value={echsValues || 'Not yet stored'} /></div><p className="mt-3 text-[11px] leading-relaxed text-slate-500">MMF editing is the next workflow stage. No departmental value is inferred when the source does not contain one.</p></div>
+      <div className="border-t border-slate-100 pt-4"><div className="flex items-center justify-between"><div className="font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-[#5e8194]">Legacy/source lineage</div><Badge tone="info"><FileText size={11} /> {item.legacyRecords.length} source {item.legacyRecords.length === 1 ? 'record' : 'records'}</Badge></div><div className="mt-3 space-y-2">{item.legacyRecords.slice(0, 3).map((record) => <div key={record.id} className="rounded-lg border border-slate-100 bg-[#fbfdfd] p-3"><div className="font-mono text-[10px] font-bold text-[#315d7f]">{record.sourceWorksheet} · row {record.sourceRow}</div><div className="mt-1 text-[11px] font-semibold text-[#1e3447]">{record.nomenclature ?? 'Unnamed source item'}</div><div className="mt-1 text-[10px] text-slate-500">{record.relationship} lineage{record.decision ? ` · ${record.decision}` : ''}</div></div>)}{item.legacyRecords.length > 3 && <div className="text-[10px] text-slate-400">+{item.legacyRecords.length - 3} more preserved source records</div>}</div></div>
+      <div className="border-t border-slate-100 pt-4"><div className="font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-[#5e8194]">Review history</div><div className="mt-2 text-[11px] leading-relaxed text-slate-500">{item.vocabularyHistory.length ? `${item.vocabularyHistory.length} linked vocabulary review ${item.vocabularyHistory.length === 1 ? 'record' : 'records'}.` : 'No linked vocabulary review history.'}</div></div>
+    </div>
+  </SectionCard>;
 }
 
 const canonicalSortOptions = [
