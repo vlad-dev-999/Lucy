@@ -896,7 +896,12 @@ router.patch(
   async (req, res, next) => {
     try {
       const params = UpdateDepartmentAssignmentMmfParams.parse(req.params);
-      const input = UpdateDepartmentAssignmentMmfBody.parse(req.body);
+      const parsedInput = UpdateDepartmentAssignmentMmfBody.safeParse(req.body);
+      if (!parsedInput.success) {
+        res.status(400).json({ error: "Invalid MMF quantity" });
+        return;
+      }
+      const input = parsedInput.data;
       const hasDglp = Object.prototype.hasOwnProperty.call(req.body ?? {}, "dglpMmf");
       const hasEchs = Object.prototype.hasOwnProperty.call(req.body ?? {}, "echsMmf");
       if (!hasDglp && !hasEchs) {

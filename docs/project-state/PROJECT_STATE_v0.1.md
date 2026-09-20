@@ -6,7 +6,7 @@ Hospital MMF Command Centre is a desktop governance workspace around the hospita
 
 ## Current Stage
 
-Stage 3 — Ticket 2: Department Workspace.
+Stage 3 — Ticket 3: Department MMF Editing.
 
 ## Implementation Status
 
@@ -21,7 +21,7 @@ Stage 3 — Ticket 2: Department Workspace.
 - Canonical vocabulary: IMPLEMENTED — searchable, paginated list with server-side sorting and detail view
 - Department item assignments: IMPLEMENTED — persistence, API, duplicate protection, ACTIVE/REMOVED lifecycle, real department IDs, and history preservation
 - Department workspace: IMPLEMENTED — runtime verified with a persisted department, active assignment, removed-assignment exclusion, canonical detail, and source lineage
-- MMF editing/history: PLANNED
+- MMF editing/history: IMPLEMENTED — VERIFIED with independent DGLP/ECHS persistence, validation, department scope enforcement, and revision history
 - Benchmark prices/forecast: PLANNED
 - Authentication/RBAC: PLANNED
 - Audit log: PLANNED
@@ -38,7 +38,7 @@ See `replit.md`. The main UI is in `artifacts/hospital-mmf`; the API route is `a
 
 ## Database State
 
-The MMF, canonical vocabulary, review, department, lineage, and department assignment tables are pushed to the development PostgreSQL database. The API returns 69 persisted department IDs. Runtime verification persisted canonical records and department assignments for the workspace check; the active assignment is returned and the removed assignment is excluded.
+The MMF, canonical vocabulary, review, department, lineage, department assignment, and department MMF revision tables are pushed to the development PostgreSQL database. The API returns 69 persisted department IDs. Runtime verification used the supported fixture/bootstrap path to create a canonical item and assignments: the active assignment is returned while the removed assignment is excluded. MMF changes persist against the assignment and create revision records independently of the canonical item.
 
 ## Completed Work
 
@@ -61,7 +61,9 @@ The MMF, canonical vocabulary, review, department, lineage, and department assig
 
 ## Tests
 
-Stage 3 Ticket 2 runtime verification completed against persisted development data: API health returned HTTP 200; departments returned 69 real IDs; the Department Workspace loaded through the web preview; selecting the first real department loaded one ACTIVE assignment; a REMOVED assignment was excluded from the active list; canonical detail showed the canonical item, department assignment, and preserved source lineage; and the UI rendered with normal Vite/React browser messages and no application errors. The existing API, workspace, and production build checks from Ticket 1 remain passed.
+Stage 3 Ticket 2 runtime verification completed against persisted development data: API health returned HTTP 200; departments returned 69 real IDs; the Department Workspace loaded through the web preview; selecting the first real department loaded one ACTIVE assignment; a REMOVED assignment was excluded from the active list; canonical detail showed the canonical item, department assignment, and preserved source lineage; and the UI rendered with normal Vite/React browser messages and no application errors.
+
+Stage 3 Ticket 3 runtime verification completed against supported development fixture/bootstrap data: 69 departments were present; a canonical item and ACTIVE/REMOVED assignments were created through the documented APIs; DGLP and ECHS updates each persisted independently and survived reload; the MMF revision record captured the assignment, department, canonical item, prior/new DGLP and ECHS values, user, and timestamp; a REMOVED assignment could not be edited; and a different department could not manipulate the assignment. The actual Department Workspace preview rendered the inline editor correctly, with no browser-console application errors. Negative and malformed MMF payloads are rejected with HTTP 400 and do not reach persistence. API and web typechecks and production builds passed after the validation-response fix.
 
 ## Business Rules
 
@@ -77,14 +79,14 @@ Stage 3 Ticket 2 runtime verification completed against persisted development da
 - `/imports` guided import review and history
 - `/imports/:id` metadata, findings, preview, and commit control
 - `/departments` detected destinations
-- `/departments` Department Workspace with active assignment list, client-side search/filter, and canonical/source detail
+- `/departments` Department Workspace with active assignment list, client-side search/filter, canonical/source detail, and inline DGLP/ECHS MMF editing for ACTIVE assignments
 - `/review-queue` vocabulary review workflow
 - `/canonical-vocabulary` searchable, paginated canonical vocabulary
 - `/canonical-vocabulary/:id` canonical item detail and lineage
 
 ## Next Stage
 
-Item-level MMF editing follows the Department Workspace. Do not implement editing, proposals, submission, benchmark prices, RBAC, freeze/release, amendments, or export as part of Ticket 2.
+Stage 4 — New Item Proposals + Common-use MMF + Department Submission. Do not implement benchmark prices, RBAC, freeze/release, amendments, or export as part of Ticket 3.
 
 ## Do Not Break
 
@@ -92,4 +94,4 @@ The supplied workbook remains the authoritative legacy contract. PVMS/NIV is not
 
 ## Git Commit
 
-`feat: implement department workspace`
+`feat: implement department mmf editing`
