@@ -1,0 +1,35 @@
+STAGE 3 TICKET 3 — COMPLETE REMAINING RUNTIME VERIFICATION
+We are continuing from the previous fresh instance.
+Do not rebuild or redesign Ticket 3. Do not audit the repository.
+Current verified state:
+dependencies installed
+managed API/web workflows running
+API health = HTTP 200
+development schema successfully applied with the repository's existing Drizzle schema push
+data routes now respond
+current development DB has departments but zero persisted assignments
+The previous Ticket 2 runtime verification used development API-created canonical/assignment records, but those records are not present in this fresh development database.
+Your remaining task is only to obtain valid development fixture data through the repository's existing supported fixture/bootstrap path and finish Ticket 3 verification.
+Locate the existing fixture/bootstrap mechanism used by this repository for development verification.
+Use that existing mechanism to establish the minimum required data:
+one real department
+one canonical item
+one ACTIVE department assignment
+one REMOVED department assignment if the existing fixture mechanism supports it
+Do not create arbitrary records or alter production data.
+Once valid development data exists, verify:
+Department Workspace loads
+ACTIVE assignment displays DGLP/ECHS MMF
+DGLP can be changed and persists
+ECHS can be changed independently and persists
+reload preserves both values
+revision/history records previous/new values, department, canonical item, user and timestamp as implemented
+invalid/negative values are rejected
+REMOVED assignment cannot be edited
+department-scoped API isolation works
+browser console has no application errors
+If the existing fixture/bootstrap path cannot establish the required state, report exactly what is missing rather than inventing a new fixture system.
+If verification succeeds, update docs/project-state/PROJECT_STATE_v0.1.md and commit:
+feat: implement department mmf editing
+Do not implement any later-stage features.
+Do not spend credits on a plan. Find the existing fixture/bootstrap path and continue the verification immediately.
