@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { and, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq } from "drizzle-orm";
 import {
   CommitImportBody,
   CommitImportParams,
@@ -13,7 +13,11 @@ import {
   ListImportsResponse,
 } from "@workspace/api-zod";
 import { db } from "@workspace/db";
-import { mmfImportsTable, type MmfImport } from "@workspace/db/schema";
+import {
+  departmentEntitiesTable,
+  mmfImportsTable,
+  type MmfImport,
+} from "@workspace/db/schema";
 import { persistImportLineage } from "./canonical";
 
 const router: IRouter = Router();
@@ -331,11 +335,15 @@ router.get("/overview", async (req, res, next) => {
 router.get("/departments", async (req, res, next) => {
   try {
     const fixture = await ensureFixtureImport();
-    const data = DEPARTMENT_NAMES.map((name, index) => ({
-      id: `dept-${index + 1}`,
-      name,
+    const departments = await db
+      .select()
+      .from(departmentEntitiesTable)
+      .orderBy(asc(departmentEntitiesTable.sourceColumnStart));
+    const data = departments.map((department, index) => ({
+      id: department.id,
+      name: department.name,
       itemCount: Math.max(0, Math.round(fixture.rowCount / 69) - (index % 7)),
-      sourceColumnStart: 12 + index * 3,
+      sourceColumnStart: department.sourceColumnStart,
     }));
     res.json(ListDepartmentsResponse.parse(data));
   } catch (error) {

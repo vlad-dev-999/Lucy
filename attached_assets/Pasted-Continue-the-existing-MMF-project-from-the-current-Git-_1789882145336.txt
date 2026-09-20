@@ -1,0 +1,136 @@
+Continue the existing MMF project from the current Git state.
+
+STAGE 3 — TICKET 1: DEPARTMENT ITEM ASSIGNMENTS
+
+The implementation is already present.
+
+The previous agent completed:
+
+- first-class department/canonical-item assignment model
+- unique department + canonical-item constraint
+- OpenAPI assignment contracts
+- generated API clients
+- assignment persistence
+- department-scoped assignment endpoints
+- canonical detail assignment data
+- idempotent assignment creation
+- REMOVED state preserving assignment history
+- library typecheck
+
+DO NOT redesign or reimplement any of this.
+
+DO NOT audit the repository.
+DO NOT reread the documentation.
+DO NOT revisit Stage 2.
+DO NOT build Department Workspace yet.
+
+==================================================
+YOUR ONLY JOB
+==================================================
+
+Finish verification of the existing implementation.
+
+1. Run API/server typecheck.
+2. Run frontend/workspace typecheck.
+3. Run the relevant tests.
+4. Run the production build if practical.
+5. Start the existing API/workflows.
+6. Verify the assignment endpoints against the real database.
+7. Verify the Department Assignment UI if it already exists.
+
+If a type/contract/runtime error occurs:
+- fix ONLY that error
+- do not refactor unrelated code
+- rerun the affected check
+
+==================================================
+RUNTIME CHECK
+==================================================
+
+Use an existing real department and an existing canonical item.
+
+Verify:
+
+1. Assignment can be created.
+2. Repeating the same assignment does not create a duplicate.
+3. Assigned item appears in the department assignment list.
+4. Assignment can be changed to REMOVED.
+5. REMOVED assignment remains historically present.
+6. REMOVED assignment is not treated as active.
+7. Canonical Item still exists after removal.
+8. Legacy lineage remains intact.
+9. An unauthorized/nonexistent department cannot be assigned arbitrarily.
+
+If the UI for this ticket already exists, verify:
+
+- department selector
+- assigned items
+- search/filter if implemented
+- assign
+- remove
+- no browser console application errors
+
+Do not build additional UI if it does not already exist. Report it as the remaining UI portion of this ticket.
+
+==================================================
+DATA INTEGRITY
+==================================================
+
+Do not delete:
+- canonical items
+- legacy items
+- lineage
+- assignment history
+
+DGLP and ECHS remain separate.
+
+PVMS/NIV remain identifiers.
+
+==================================================
+BATON
+==================================================
+
+Update the CURRENT project-state baton only with actual verified status.
+
+Record:
+
+IMPLEMENTED:
+- assignment data model
+- assignment persistence
+- assignment API
+- duplicate protection
+- removal/history semantics
+- whatever UI is actually verified
+
+PARTIAL:
+- anything genuinely incomplete
+
+TESTS:
+- exact checks actually run
+
+NEXT TICKET:
+Department Workspace
+
+The next ticket is:
+
+Department Workspace
+→ assigned canonical items
+→ department item list
+→ item-level MMF editing
+
+Do not implement that ticket now.
+
+==================================================
+COMMIT
+==================================================
+
+If fixes or baton changes were made:
+
+git add -A
+git commit -m "feat: complete department item assignments"
+
+If the previous WIP commit already contains everything and no changes are necessary, do not create an unnecessary second implementation commit.
+
+Ensure the final working tree is clean.
+
+START WITH TYPECHECK AND RUNTIME VERIFICATION.
