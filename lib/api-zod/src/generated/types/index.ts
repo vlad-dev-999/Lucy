@@ -48,6 +48,7 @@ export * from './qualityIssue';
 export * from './qualityIssueSeverity';
 export * from './updateDepartmentAssignmentInput';
 export * from './updateDepartmentAssignmentInputStatus';
+export * from './updateDepartmentMmfInput';
 export * from './vocabularyDecisionInput';
 export * from './vocabularyDecisionInputDecision';
 export * from './vocabularyReview';

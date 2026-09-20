@@ -104,6 +104,8 @@ export const departmentItemAssignmentsTable = pgTable(
       onDelete: "restrict",
     }),
     source: text("source"),
+    currentDglpMmf: doublePrecision("current_dglp_mmf"),
+    currentEchsMmf: doublePrecision("current_echs_mmf"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
@@ -113,6 +115,28 @@ export const departmentItemAssignmentsTable = pgTable(
       table.canonicalItemId,
     ),
   }),
+);
+
+export const departmentMmfRevisionsTable = pgTable(
+  "department_mmf_revisions",
+  {
+    id: text("id").primaryKey(),
+    departmentId: text("department_id")
+      .notNull()
+      .references(() => departmentEntitiesTable.id, { onDelete: "restrict" }),
+    canonicalItemId: text("canonical_item_id")
+      .notNull()
+      .references(() => canonicalItemsTable.id, { onDelete: "restrict" }),
+    assignmentId: text("assignment_id")
+      .notNull()
+      .references(() => departmentItemAssignmentsTable.id, { onDelete: "restrict" }),
+    previousDglpMmf: doublePrecision("previous_dglp_mmf"),
+    newDglpMmf: doublePrecision("new_dglp_mmf"),
+    previousEchsMmf: doublePrecision("previous_echs_mmf"),
+    newEchsMmf: doublePrecision("new_echs_mmf"),
+    changedBy: text("changed_by").notNull(),
+    changedAt: timestamp("changed_at", { withTimezone: true }).notNull().defaultNow(),
+  },
 );
 
 export const legacyCanonicalLineageTable = pgTable(
@@ -181,6 +205,7 @@ export type DepartmentEntity = typeof departmentEntitiesTable.$inferSelect;
 export type LegacyItemDepartment = typeof legacyItemDepartmentsTable.$inferSelect;
 export type CanonicalItem = typeof canonicalItemsTable.$inferSelect;
 export type DepartmentItemAssignment = typeof departmentItemAssignmentsTable.$inferSelect;
+export type DepartmentMmfRevision = typeof departmentMmfRevisionsTable.$inferSelect;
 export type LegacyCanonicalLineage = typeof legacyCanonicalLineageTable.$inferSelect;
 export type VocabularyReview = typeof vocabularyReviewsTable.$inferSelect;
 export type VocabularyReviewCandidate =

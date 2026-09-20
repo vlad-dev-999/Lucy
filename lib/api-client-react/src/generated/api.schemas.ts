@@ -206,6 +206,10 @@ export interface DepartmentItemAssignment {
   niv: string | null;
   /** @nullable */
   unit: string | null;
+  /** @nullable */
+  currentDglpMmf: number | null;
+  /** @nullable */
+  currentEchsMmf: number | null;
   status: DepartmentItemAssignmentStatus;
   /** @nullable */
   sourceImportId: string | null;
@@ -242,6 +246,19 @@ export const UpdateDepartmentAssignmentInputStatus = {
 
 export interface UpdateDepartmentAssignmentInput {
   status: UpdateDepartmentAssignmentInputStatus;
+}
+
+export interface UpdateDepartmentMmfInput {
+  /**
+     * @minimum 0
+     * @nullable
+     */
+  dglpMmf?: number | null;
+  /**
+     * @minimum 0
+     * @nullable
+     */
+  echsMmf?: number | null;
 }
 
 export type LegacyItemDepartmentsItem = {

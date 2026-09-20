@@ -128,6 +128,31 @@ paths:
                 $ref: "#/components/schemas/DepartmentItemAssignment"
         "404":
           description: Assignment not found
+  /departments/{departmentId}/assignments/{canonicalItemId}/mmf:
+    patch:
+      operationId: updateDepartmentAssignmentMmf
+      tags: [assignments]
+      summary: Update the departmental DGLP and ECHS MMF quantities
+      parameters:
+        - $ref: "#/components/parameters/DepartmentId"
+        - $ref: "#/components/parameters/CanonicalItemId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateDepartmentMmfInput"
+      responses:
+        "200":
+          description: Updated department assignment MMF values
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DepartmentItemAssignment"
+        "400":
+          description: Invalid MMF quantity
+        "404":
+          description: Active department assignment not found
   /imports:
     get:
       operationId: listImports
@@ -631,7 +656,7 @@ components:
           type: integer
     DepartmentItemAssignment:
       type: object
-      required: [id, departmentId, departmentName, canonicalItemId, canonicalId, nomenclature, pvms, niv, unit, status, sourceImportId, source, createdAt, updatedAt]
+      required: [id, departmentId, departmentName, canonicalItemId, canonicalId, nomenclature, pvms, niv, unit, currentDglpMmf, currentEchsMmf, status, sourceImportId, source, createdAt, updatedAt]
       properties:
         id:
           type: string
@@ -651,6 +676,10 @@ components:
           type: ["string", "null"]
         unit:
           type: ["string", "null"]
+        currentDglpMmf:
+          type: ["number", "null"]
+        currentEchsMmf:
+          type: ["number", "null"]
         status:
           type: string
           enum: [ACTIVE, REMOVED]
@@ -685,6 +714,16 @@ components:
         status:
           type: string
           enum: [ACTIVE, REMOVED]
+    UpdateDepartmentMmfInput:
+      type: object
+      properties:
+        dglpMmf:
+          type: ["number", "null"]
+          minimum: 0
+        echsMmf:
+          type: ["number", "null"]
+          minimum: 0
+      additionalProperties: false
     LegacyItem:
       type: object
       required: [id, importId, sourceWorksheet, sourceRow, systemId, identifier, nomenclature, specification, unit, pvms, niv, previousPvmsMmf, currentPvmsMmf, previousDglpMmf, currentDglpMmf, previousEchsMmf, currentEchsMmf, lpr, sourceValues, departments]

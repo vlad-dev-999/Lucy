@@ -21,6 +21,10 @@ export interface DepartmentItemAssignment {
   niv: string | null;
   /** @nullable */
   unit: string | null;
+  /** @nullable */
+  currentDglpMmf: number | null;
+  /** @nullable */
+  currentEchsMmf: number | null;
   status: DepartmentItemAssignmentStatus;
   /** @nullable */
   sourceImportId: string | null;

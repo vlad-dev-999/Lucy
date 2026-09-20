@@ -31,6 +31,9 @@ import {
   UpdateDepartmentAssignmentBody,
   UpdateDepartmentAssignmentParams,
   UpdateDepartmentAssignmentResponse,
+  UpdateDepartmentAssignmentMmfBody,
+  UpdateDepartmentAssignmentMmfParams,
+  UpdateDepartmentAssignmentMmfResponse,
   type DepartmentInput,
   type ImportInput,
   type LegacyRowInput,
@@ -39,6 +42,7 @@ import { db } from "@workspace/db";
 import {
   canonicalItemsTable,
   departmentItemAssignmentsTable,
+  departmentMmfRevisionsTable,
   departmentEntitiesTable,
   legacyCanonicalLineageTable,
   legacyItemDepartmentsTable,
@@ -205,6 +209,8 @@ type DepartmentAssignmentRow = {
   status: string;
   sourceImportId: string | null;
   source: string | null;
+  currentDglpMmf: number | null;
+  currentEchsMmf: number | null;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -223,6 +229,8 @@ function toDepartmentAssignmentResponse(row: DepartmentAssignmentRow) {
     status: row.status,
     sourceImportId: row.sourceImportId,
     source: row.source,
+    currentDglpMmf: row.currentDglpMmf,
+    currentEchsMmf: row.currentEchsMmf,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };
@@ -243,6 +251,8 @@ async function getDepartmentAssignment(id: string) {
       status: departmentItemAssignmentsTable.status,
       sourceImportId: departmentItemAssignmentsTable.sourceImportId,
       source: departmentItemAssignmentsTable.source,
+      currentDglpMmf: departmentItemAssignmentsTable.currentDglpMmf,
+      currentEchsMmf: departmentItemAssignmentsTable.currentEchsMmf,
       createdAt: departmentItemAssignmentsTable.createdAt,
       updatedAt: departmentItemAssignmentsTable.updatedAt,
     })
@@ -275,6 +285,8 @@ async function listAssignmentsForCanonical(canonicalItemId: string) {
       status: departmentItemAssignmentsTable.status,
       sourceImportId: departmentItemAssignmentsTable.sourceImportId,
       source: departmentItemAssignmentsTable.source,
+      currentDglpMmf: departmentItemAssignmentsTable.currentDglpMmf,
+      currentEchsMmf: departmentItemAssignmentsTable.currentEchsMmf,
       createdAt: departmentItemAssignmentsTable.createdAt,
       updatedAt: departmentItemAssignmentsTable.updatedAt,
     })
@@ -307,6 +319,8 @@ async function listAssignmentsForDepartment(departmentId: string) {
       status: departmentItemAssignmentsTable.status,
       sourceImportId: departmentItemAssignmentsTable.sourceImportId,
       source: departmentItemAssignmentsTable.source,
+      currentDglpMmf: departmentItemAssignmentsTable.currentDglpMmf,
+      currentEchsMmf: departmentItemAssignmentsTable.currentEchsMmf,
       createdAt: departmentItemAssignmentsTable.createdAt,
       updatedAt: departmentItemAssignmentsTable.updatedAt,
     })
@@ -872,6 +886,80 @@ router.patch(
       res.json(UpdateDepartmentAssignmentResponse.parse(response));
     } catch (error) {
       req.log.error({ error }, "Failed to update department assignment");
+      next(error);
+    }
+  },
+);
+
+router.patch(
+  "/departments/:departmentId/assignments/:canonicalItemId/mmf",
+  async (req, res, next) => {
+    try {
+      const params = UpdateDepartmentAssignmentMmfParams.parse(req.params);
+      const input = UpdateDepartmentAssignmentMmfBody.parse(req.body);
+      const hasDglp = Object.prototype.hasOwnProperty.call(req.body ?? {}, "dglpMmf");
+      const hasEchs = Object.prototype.hasOwnProperty.call(req.body ?? {}, "echsMmf");
+      if (!hasDglp && !hasEchs) {
+        res.status(400).json({ error: "At least one MMF quantity must be provided" });
+        return;
+      }
+
+      const [assignment] = await db
+        .select()
+        .from(departmentItemAssignmentsTable)
+        .where(
+          and(
+            eq(departmentItemAssignmentsTable.departmentId, params.departmentId),
+            eq(departmentItemAssignmentsTable.canonicalItemId, params.canonicalItemId),
+            eq(departmentItemAssignmentsTable.status, "ACTIVE"),
+          ),
+        )
+        .limit(1);
+      if (!assignment) {
+        res.status(404).json({ error: "Active department assignment not found" });
+        return;
+      }
+
+      const nextDglpMmf = hasDglp ? (input.dglpMmf ?? null) : assignment.currentDglpMmf;
+      const nextEchsMmf = hasEchs ? (input.echsMmf ?? null) : assignment.currentEchsMmf;
+      const changedBy = req.get("x-user-id")?.trim() || "demo-department-user";
+      const changedAt = new Date();
+
+      await db.transaction(async (tx) => {
+        await tx
+          .update(departmentItemAssignmentsTable)
+          .set({
+            currentDglpMmf: nextDglpMmf,
+            currentEchsMmf: nextEchsMmf,
+            updatedAt: changedAt,
+          })
+          .where(
+            and(
+              eq(departmentItemAssignmentsTable.id, assignment.id),
+              eq(departmentItemAssignmentsTable.departmentId, params.departmentId),
+              eq(departmentItemAssignmentsTable.status, "ACTIVE"),
+            ),
+          );
+
+        await tx.insert(departmentMmfRevisionsTable).values({
+          id: `department_mmf_revision_${crypto.randomUUID()}`,
+          departmentId: assignment.departmentId,
+          canonicalItemId: assignment.canonicalItemId,
+          assignmentId: assignment.id,
+          previousDglpMmf: assignment.currentDglpMmf,
+          newDglpMmf: nextDglpMmf,
+          previousEchsMmf: assignment.currentEchsMmf,
+          newEchsMmf: nextEchsMmf,
+          changedBy,
+          changedAt,
+        });
+      });
+
+      const response = await getDepartmentAssignment(assignment.id);
+      if (!response) throw new Error("Updated department assignment could not be loaded");
+      res.json(UpdateDepartmentAssignmentMmfResponse.parse(response));
+    } catch (error) {
+      req.log.error({ error }, "Failed to update department MMF");
       next(error);
     }
   },

@@ -35,6 +35,7 @@ import type {
   ListVocabularyReviewsParams,
   Overview,
   UpdateDepartmentAssignmentInput,
+  UpdateDepartmentMmfInput,
   VocabularyDecisionInput,
   VocabularyReview,
   VocabularyReviewPage
@@ -554,6 +555,97 @@ export const useUpdateDepartmentAssignment = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getUpdateDepartmentAssignmentMutationOptions(options));
+    }
+
+export const getUpdateDepartmentAssignmentMmfUrl = (departmentId: string,
+    canonicalItemId: string,) => {
+
+
+
+
+  return `/api/departments/${departmentId}/assignments/${canonicalItemId}/mmf`
+}
+
+/**
+ * @summary Update the departmental DGLP and ECHS MMF quantities
+ */
+export const updateDepartmentAssignmentMmf = async (departmentId: string,
+    canonicalItemId: string,
+    updateDepartmentMmfInput: UpdateDepartmentMmfInput, options?: Parameters<typeof customFetch>[1]): Promise<DepartmentItemAssignment> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<DepartmentItemAssignment>(getUpdateDepartmentAssignmentMmfUrl(departmentId,canonicalItemId),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updateDepartmentMmfInput)
+  }
+);}
+
+
+
+
+
+export const getUpdateDepartmentAssignmentMmfMutationKey = () => ['updateDepartmentAssignmentMmf'] as const;
+
+export const getUpdateDepartmentAssignmentMmfMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateDepartmentAssignmentMmf>>, TError,UpdateDepartmentAssignmentMmfMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateDepartmentAssignmentMmf>>, TError,UpdateDepartmentAssignmentMmfMutationVariables, TContext> => {
+
+const mutationKey = getUpdateDepartmentAssignmentMmfMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateDepartmentAssignmentMmf>>, UpdateDepartmentAssignmentMmfMutationVariables> = (props) => {
+          const {departmentId,canonicalItemId,data} = props ?? {};
+
+          return  updateDepartmentAssignmentMmf(departmentId,canonicalItemId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateDepartmentAssignmentMmfMutationResult = NonNullable<Awaited<ReturnType<typeof updateDepartmentAssignmentMmf>>>
+    export type UpdateDepartmentAssignmentMmfMutationBody = BodyType<UpdateDepartmentMmfInput>
+    export type UpdateDepartmentAssignmentMmfMutationError = ErrorType<void>
+    export type UpdateDepartmentAssignmentMmfMutationVariables = {departmentId: string;canonicalItemId: string;data: BodyType<UpdateDepartmentMmfInput>}
+
+    /**
+ * @summary Update the departmental DGLP and ECHS MMF quantities
+ */
+export const useUpdateDepartmentAssignmentMmf = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateDepartmentAssignmentMmf>>, TError,UpdateDepartmentAssignmentMmfMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateDepartmentAssignmentMmf>>,
+        TError,
+        UpdateDepartmentAssignmentMmfMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUpdateDepartmentAssignmentMmfMutationOptions(options));
     }
 
 export const getListImportsUrl = () => {

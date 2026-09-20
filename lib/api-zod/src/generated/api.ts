@@ -83,6 +83,8 @@ export const ListDepartmentAssignmentsResponseItem = zod.object({
   "pvms": zod.string().nullable(),
   "niv": zod.string().nullable(),
   "unit": zod.string().nullable(),
+  "currentDglpMmf": zod.number().nullable(),
+  "currentEchsMmf": zod.number().nullable(),
   "status": zod.enum(['ACTIVE', 'REMOVED']),
   "sourceImportId": zod.string().nullable(),
   "source": zod.string().nullable(),
@@ -118,6 +120,8 @@ export const CreateDepartmentAssignmentResponse = zod.object({
   "pvms": zod.string().nullable(),
   "niv": zod.string().nullable(),
   "unit": zod.string().nullable(),
+  "currentDglpMmf": zod.number().nullable(),
+  "currentEchsMmf": zod.number().nullable(),
   "status": zod.enum(['ACTIVE', 'REMOVED']),
   "sourceImportId": zod.string().nullable(),
   "source": zod.string().nullable(),
@@ -148,6 +152,47 @@ export const UpdateDepartmentAssignmentResponse = zod.object({
   "pvms": zod.string().nullable(),
   "niv": zod.string().nullable(),
   "unit": zod.string().nullable(),
+  "currentDglpMmf": zod.number().nullable(),
+  "currentEchsMmf": zod.number().nullable(),
+  "status": zod.enum(['ACTIVE', 'REMOVED']),
+  "sourceImportId": zod.string().nullable(),
+  "source": zod.string().nullable(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Update the departmental DGLP and ECHS MMF quantities
+ */
+export const UpdateDepartmentAssignmentMmfParams = zod.object({
+  "departmentId": zod.coerce.string(),
+  "canonicalItemId": zod.coerce.string()
+})
+
+export const updateDepartmentAssignmentMmfBodyDglpMmfMin = 0;
+
+export const updateDepartmentAssignmentMmfBodyEchsMmfMin = 0;
+
+
+
+export const UpdateDepartmentAssignmentMmfBody = zod.object({
+  "dglpMmf": zod.number().min(updateDepartmentAssignmentMmfBodyDglpMmfMin).nullish(),
+  "echsMmf": zod.number().min(updateDepartmentAssignmentMmfBodyEchsMmfMin).nullish()
+})
+
+export const UpdateDepartmentAssignmentMmfResponse = zod.object({
+  "id": zod.string(),
+  "departmentId": zod.string(),
+  "departmentName": zod.string(),
+  "canonicalItemId": zod.string(),
+  "canonicalId": zod.string(),
+  "nomenclature": zod.string().nullable(),
+  "pvms": zod.string().nullable(),
+  "niv": zod.string().nullable(),
+  "unit": zod.string().nullable(),
+  "currentDglpMmf": zod.number().nullable(),
+  "currentEchsMmf": zod.number().nullable(),
   "status": zod.enum(['ACTIVE', 'REMOVED']),
   "sourceImportId": zod.string().nullable(),
   "source": zod.string().nullable(),
@@ -481,6 +526,8 @@ export const CreateCanonicalItemResponse = zod.object({
   "pvms": zod.string().nullable(),
   "niv": zod.string().nullable(),
   "unit": zod.string().nullable(),
+  "currentDglpMmf": zod.number().nullable(),
+  "currentEchsMmf": zod.number().nullable(),
   "status": zod.enum(['ACTIVE', 'REMOVED']),
   "sourceImportId": zod.string().nullable(),
   "source": zod.string().nullable(),
@@ -558,6 +605,8 @@ export const GetCanonicalItemResponse = zod.object({
   "pvms": zod.string().nullable(),
   "niv": zod.string().nullable(),
   "unit": zod.string().nullable(),
+  "currentDglpMmf": zod.number().nullable(),
+  "currentEchsMmf": zod.number().nullable(),
   "status": zod.enum(['ACTIVE', 'REMOVED']),
   "sourceImportId": zod.string().nullable(),
   "source": zod.string().nullable(),

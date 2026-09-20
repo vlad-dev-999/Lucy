@@ -1,0 +1,87 @@
+STAGE 3 TICKET 3 — DEPARTMENT MMF EDITING
+We are continuing the existing MMF project. The current baton is docs/project-state/PROJECT_STATE_v0.1.md.
+Stage 3 Ticket 1 — Department Item Assignments is complete. Stage 3 Ticket 2 — Department Workspace is complete and runtime-verified in commit f113e9a.
+Do not audit the repository. Do not reread the full documentation. Do not redesign the existing Department Workspace. Start implementing this bounded ticket immediately.
+Objective
+Extend the existing Department Workspace so an authorized department user can maintain the department's DGLP MMF and ECHS MMF quantities for its ACTIVE canonical-item assignments.
+MMF means Monthly Maintenance Figure: the expected monthly quantity/requirement.
+DGLP and ECHS are the two budget heads. PVMS and NIV are identifiers only and must never be treated as budget heads.
+Required behaviour
+For each ACTIVE department assignment:
+Display current DGLP MMF.
+Display current ECHS MMF.
+Allow editing each independently.
+Accept valid non-negative numeric quantities appropriate to the existing data model.
+Reject malformed, negative, or otherwise invalid values server-side.
+Save through a proper API endpoint.
+Reloading the workspace must show the persisted values.
+Editing DGLP must not alter ECHS, and vice versa.
+Department A must never be able to modify Department B's MMF.
+REMOVED assignments must not be editable.
+Do not invent a new conceptual budget structure. There are exactly two MMF quantities: DGLP and ECHS.
+Data model / history
+Inspect the existing implementation only where necessary to determine the correct persistence model.
+MMF values are departmental values associated with the department/canonical-item relationship. Do not put department-specific MMF into the global canonical item itself.
+If the existing schema already provides appropriate revision/history support, use it.
+If it does not, implement the minimum necessary MMF revision/history model so that consequential MMF changes are traceable. At minimum preserve:
+department
+canonical item
+DGLP value
+ECHS value
+who changed it
+timestamp
+previous value/new value where appropriate
+Do not build a generic audit framework in this ticket; the full audit-log system comes later.
+UI
+Extend the existing desktop Department Workspace rather than creating a separate primitive CRUD page.
+Keep the current visual language and table structure.
+Suggested table columns:
+Canonical ID | Nomenclature | PVMS | NIV | Unit | DGLP MMF | ECHS MMF | Status | Actions
+Make MMF editing obvious but restrained. Inline editing or a focused edit dialog is acceptable; use whichever fits the existing workspace architecture best.
+Include:
+clear editable/read-only states
+save/cancel behaviour
+validation messages
+saving state
+success feedback
+API error feedback
+empty state
+loading state
+Do not clutter the page with decorative cards or meaningless charts.
+Authorization
+Enforce department scope server-side using the existing authorization patterns.
+Do not rely on hiding UI controls.
+A direct API request for another department must be rejected.
+Explicitly OUT OF SCOPE
+Do NOT implement:
+New Item Proposals
+Common-use MMF
+Department submission
+Benchmark prices
+Forecast valuation
+Hospital approval
+Freeze/release
+Amendments
+Full RBAC/administration
+Exact legacy XLSX export
+Those are later stages.
+Verification
+Perform targeted verification only:
+Open a real department.
+Confirm an ACTIVE assigned canonical item appears.
+Confirm DGLP and ECHS values are displayed.
+Change DGLP and verify persistence.
+Change ECHS and verify persistence independently.
+Reload and verify both values remain correct.
+Test invalid/negative input.
+Confirm REMOVED assignment cannot be edited.
+Confirm department isolation/server-side authorization.
+Confirm API typecheck.
+Confirm frontend typecheck.
+Confirm production web build.
+Check browser console for application errors.
+Use existing development data/API mechanisms for verification. Do not create unnecessary fixtures.
+Update the existing PROJECT_STATE_v0.1.md with the actual implementation status and any limitations.
+Commit the completed implementation with:
+feat: implement department mmf editing
+Do not give me a planning essay. Start coding immediately. Keep the ticket bounded and preserve everything already working.

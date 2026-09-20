@@ -51,6 +51,7 @@ import {
   useListDepartments,
   useListImports,
   useListVocabularyReviews,
+  useUpdateDepartmentAssignmentMmf,
 } from '@workspace/api-client-react';
 import type { CanonicalItem, CanonicalItemDetail, Department, DepartmentInput, DepartmentItemAssignment, ImportSummary, LegacyItem, LegacyRowInput, ListCanonicalItemsParams, ListVocabularyReviewsParams, PreviewRow, QualityIssue, VocabularyDecisionInput, VocabularyDecisionInputDecision, VocabularyReview } from '@workspace/api-client-react';
 import { ErrorBoundary } from '@/components/error-boundary';
@@ -82,6 +83,12 @@ function formatDate(value?: string | null, withTime = false) {
 
 function formatNumber(value: number | null | undefined) {
   return new Intl.NumberFormat('en-GB').format(value ?? 0);
+}
+
+function formatMmfValue(value: number | null | undefined) {
+  return value === null || value === undefined
+    ? 'Not set'
+    : new Intl.NumberFormat('en-GB', { maximumFractionDigits: 4 }).format(value);
 }
 
 function initials(label: string) {
@@ -600,8 +607,14 @@ function DepartmentsPage() {
   const [selectedDepartmentId, setSelectedDepartmentId] = useState('');
   const [search, setSearch] = useState('');
   const [selectedAssignmentId, setSelectedAssignmentId] = useState<string | null>(null);
+  const [editingAssignmentId, setEditingAssignmentId] = useState<string | null>(null);
+  const [draftDglpMmf, setDraftDglpMmf] = useState('');
+  const [draftEchsMmf, setDraftEchsMmf] = useState('');
+  const [mmfError, setMmfError] = useState('');
+  const [mmfSuccess, setMmfSuccess] = useState('');
   const departments = departmentsQuery.data ?? [];
   const selectedDepartment = departments.find((department) => department.id === selectedDepartmentId) ?? null;
+  const updateMmf = useUpdateDepartmentAssignmentMmf();
   const assignmentsQuery = useListDepartmentAssignments(selectedDepartmentId, {
     query: {
       queryKey: getListDepartmentAssignmentsQueryKey(selectedDepartmentId),
@@ -628,6 +641,76 @@ function DepartmentsPage() {
     },
   });
 
+  const startEditing = (assignment: DepartmentItemAssignment) => {
+    setEditingAssignmentId(assignment.id);
+    setSelectedAssignmentId(assignment.id);
+    setDraftDglpMmf(assignment.currentDglpMmf === null ? '' : String(assignment.currentDglpMmf));
+    setDraftEchsMmf(assignment.currentEchsMmf === null ? '' : String(assignment.currentEchsMmf));
+    setMmfError('');
+    setMmfSuccess('');
+  };
+
+  const cancelEditing = () => {
+    setEditingAssignmentId(null);
+    setDraftDglpMmf('');
+    setDraftEchsMmf('');
+    setMmfError('');
+  };
+
+  const saveMmf = (assignment: DepartmentItemAssignment) => {
+    const parseQuantity = (value: string, label: string) => {
+      if (!value.trim()) return null;
+      const quantity = Number(value);
+      if (!Number.isFinite(quantity) || quantity < 0) {
+        throw new Error(`${label} must be a non-negative number.`);
+      }
+      return quantity;
+    };
+
+    let nextDglpMmf: number | null;
+    let nextEchsMmf: number | null;
+    try {
+      nextDglpMmf = parseQuantity(draftDglpMmf, 'DGLP MMF');
+      nextEchsMmf = parseQuantity(draftEchsMmf, 'ECHS MMF');
+    } catch (error) {
+      setMmfError(error instanceof Error ? error.message : 'Enter valid MMF quantities.');
+      return;
+    }
+
+    const data: { dglpMmf?: number | null; echsMmf?: number | null } = {};
+    if (nextDglpMmf !== assignment.currentDglpMmf) data.dglpMmf = nextDglpMmf;
+    if (nextEchsMmf !== assignment.currentEchsMmf) data.echsMmf = nextEchsMmf;
+    if (!Object.keys(data).length) {
+      setMmfError('Change at least one MMF quantity before saving.');
+      return;
+    }
+
+    setMmfError('');
+    updateMmf.mutate(
+      {
+        departmentId: selectedDepartmentId,
+        canonicalItemId: assignment.canonicalItemId,
+        data,
+      },
+      {
+        onSuccess: () => {
+          void queryClient.invalidateQueries({
+            queryKey: getListDepartmentAssignmentsQueryKey(selectedDepartmentId),
+          });
+          void queryClient.invalidateQueries({
+            queryKey: getGetCanonicalItemQueryKey(assignment.canonicalItemId),
+          });
+          setEditingAssignmentId(null);
+          setMmfSuccess(`MMF saved for ${assignment.canonicalId}.`);
+          setMmfError('');
+        },
+        onError: (error) => {
+          setMmfError(error instanceof Error ? error.message : 'MMF could not be saved. Try again.');
+        },
+      },
+    );
+  };
+
   useEffect(() => {
     if (!selectedDepartmentId && departments.length) setSelectedDepartmentId(departments[0].id);
   }, [departments, selectedDepartmentId]);
@@ -643,7 +726,7 @@ function DepartmentsPage() {
   }, [assignments, selectedAssignmentId]);
 
   return <div className="mx-auto max-w-[1440px] rise-in">
-    <PageHeading eyebrow="Department workspace" title={selectedDepartment?.name ?? 'Department workspace'} description="Work only with canonical items actively assigned to the selected hospital department. MMF editing follows in the next workflow stage." />
+    <PageHeading eyebrow="Department workspace" title={selectedDepartment?.name ?? 'Department workspace'} description="Maintain the DGLP and ECHS monthly requirements for active canonical items assigned to this department." />
     {departmentsQuery.isLoading ? <div className="skeleton h-24 rounded-xl" /> : departmentsQuery.isError ? <QueryState error={departmentsQuery.error} onRetry={() => void departmentsQuery.refetch()} label="departments" /> : !departments.length ? <SectionCard title="Department workspace"><EmptyState title="No departments detected" detail="Commit a validated baseline to populate departmental destinations." action={<Link href="/imports" className="rounded-lg bg-[#244c65] px-3 py-2 text-xs font-bold text-white" data-testid="link-review-imports-empty">Review imports</Link>} /></SectionCard> : <>
       <SectionCard title="Select department" eyebrow="Active assignment scope">
         <div className="flex items-center gap-5 px-5 py-4">
@@ -660,7 +743,8 @@ function DepartmentsPage() {
         </div>
       </SectionCard>
       <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1.55fr)_minmax(360px,.85fr)]">
-        <SectionCard title="Assigned canonical items" eyebrow={`${filteredAssignments.length} shown · ${assignments.length} active assignments`} action={<div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search ID, name, PVMS or NIV" className="h-9 w-64 rounded-lg border border-slate-200 bg-white pl-8 pr-3 text-[11px] outline-none placeholder:text-slate-400 focus:ring-2 focus:ring-[#9ed8c7]" data-testid="input-search-department-items" /></div>}>
+          <SectionCard title="Assigned canonical items" eyebrow={`${filteredAssignments.length} shown · ${assignments.length} active assignments`} action={<div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search ID, name, PVMS or NIV" className="h-9 w-64 rounded-lg border border-slate-200 bg-white pl-8 pr-3 text-[11px] outline-none placeholder:text-slate-400 focus:ring-2 focus:ring-[#9ed8c7]" data-testid="input-search-department-items" /></div>}>
+           {(mmfError || mmfSuccess) && <div className={`mx-5 mt-5 rounded-lg border px-4 py-3 text-xs font-semibold ${mmfError ? 'border-[#e7b8b0] bg-[#fff1ee] text-[#9c3e31]' : 'border-[#b9ded2] bg-[#eef8f4] text-[#1e6856]'}`} role="status" data-testid={mmfError ? 'status-mmf-error' : 'status-mmf-success'}>{mmfError || mmfSuccess}</div>}
           {assignmentsQuery.isLoading ? <div className="space-y-3 p-5"><div className="skeleton h-10 rounded" /><div className="skeleton h-10 rounded" /><div className="skeleton h-10 rounded" /><div className="skeleton h-10 rounded" /></div> : assignmentsQuery.isError ? <div className="p-5"><QueryState error={assignmentsQuery.error} onRetry={() => void assignmentsQuery.refetch()} label="department items" /></div> : !assignments.length ? <EmptyState title="No active items assigned" detail="This department has no active canonical assignments yet. Removed assignments are retained in history but excluded from the workspace." /> : !filteredAssignments.length ? <EmptyState title="No matching items" detail="Try a different canonical ID, nomenclature, PVMS, NIV, or unit search." /> : <div className="overflow-x-auto">
             <table className="w-full min-w-[820px] text-left" data-testid="table-department-items">
               <thead className="bg-[#f8fbfb]"><tr className="border-b border-slate-100">{['Canonical ID', 'Nomenclature', 'PVMS', 'NIV', 'Unit', 'DGLP MMF', 'ECHS MMF', 'Status', 'Actions'].map((header) => <th className="whitespace-nowrap px-3 py-3 font-mono text-[9px] font-bold uppercase tracking-[0.1em] text-slate-400" key={header}>{header}</th>)}</tr></thead>
@@ -670,15 +754,15 @@ function DepartmentsPage() {
                 <td className="whitespace-nowrap px-3 py-3 font-mono text-slate-600">{assignment.pvms ?? '—'}</td>
                 <td className="whitespace-nowrap px-3 py-3 font-mono text-slate-600">{assignment.niv ?? '—'}</td>
                 <td className="whitespace-nowrap px-3 py-3 text-slate-500">{assignment.unit ?? '—'}</td>
-                <td className="whitespace-nowrap px-3 py-3 text-slate-400">Not stored</td>
-                <td className="whitespace-nowrap px-3 py-3 text-slate-400">Not stored</td>
+                 <td className="whitespace-nowrap px-3 py-3 font-mono text-slate-600">{editingAssignmentId === assignment.id ? <input type="number" min="0" step="any" value={draftDglpMmf} onChange={(event) => setDraftDglpMmf(event.target.value)} className="h-8 w-24 rounded-md border border-[#bdcfdf] bg-white px-2 text-[11px] outline-none focus:ring-2 focus:ring-[#9ed8c7]" aria-label={`DGLP MMF for ${assignment.canonicalId}`} data-testid={`input-dglp-mmf-${assignment.id}`} /> : formatMmfValue(assignment.currentDglpMmf)}</td>
+                 <td className="whitespace-nowrap px-3 py-3 font-mono text-slate-600">{editingAssignmentId === assignment.id ? <input type="number" min="0" step="any" value={draftEchsMmf} onChange={(event) => setDraftEchsMmf(event.target.value)} className="h-8 w-24 rounded-md border border-[#bdcfdf] bg-white px-2 text-[11px] outline-none focus:ring-2 focus:ring-[#9ed8c7]" aria-label={`ECHS MMF for ${assignment.canonicalId}`} data-testid={`input-echs-mmf-${assignment.id}`} /> : formatMmfValue(assignment.currentEchsMmf)}</td>
                 <td className="px-3 py-3"><Badge tone="success"><CheckCircle2 size={11} /> Active</Badge></td>
-                <td className="px-3 py-3"><button onClick={() => setSelectedAssignmentId(assignment.id)} className="inline-flex items-center gap-1 rounded-md border border-[#bdcfdf] px-2 py-1.5 font-semibold text-[#315d7f] hover:bg-[#eef4f9]" data-testid={`button-open-department-item-${assignment.id}`}>Open <ChevronRight size={13} /></button></td>
+                 <td className="px-3 py-3">{editingAssignmentId === assignment.id ? <div className="flex items-center gap-1.5"><button disabled={updateMmf.isPending} onClick={() => saveMmf(assignment)} className="inline-flex items-center gap-1 rounded-md bg-[#244c65] px-2 py-1.5 font-semibold text-white hover:bg-[#1b3c50] disabled:cursor-not-allowed disabled:opacity-50" data-testid={`button-save-mmf-${assignment.id}`}>{updateMmf.isPending ? <RefreshCw size={12} className="animate-spin" /> : <Check size={12} />} Save</button><button disabled={updateMmf.isPending} onClick={cancelEditing} className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1.5 font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50" data-testid={`button-cancel-mmf-${assignment.id}`}>Cancel</button></div> : <div className="flex items-center gap-1.5"><button onClick={() => startEditing(assignment)} className="inline-flex items-center gap-1 rounded-md border border-[#bdcfdf] px-2 py-1.5 font-semibold text-[#315d7f] hover:bg-[#eef4f9]" data-testid={`button-edit-mmf-${assignment.id}`}>Edit MMF</button><button onClick={() => setSelectedAssignmentId(assignment.id)} className="grid size-8 place-items-center rounded-md border border-slate-200 text-slate-500 hover:bg-slate-50" aria-label={`Open ${assignment.canonicalId}`} data-testid={`button-open-department-item-${assignment.id}`}><ChevronRight size={13} /></button></div>}</td>
               </tr>)}</tbody>
             </table>
           </div>}
         </SectionCard>
-        <DepartmentItemDetail assignment={selectedAssignment} detailQuery={detailQuery} />
+       <DepartmentItemDetail assignment={selectedAssignment} detailQuery={detailQuery} />
       </div>
     </>}
   </div>;
@@ -712,7 +796,7 @@ function DepartmentItemDetail({ assignment, detailQuery }: {
         <DetailField label="Canonical status" value={item.status} />
       </div>
       <div className="border-t border-slate-100 pt-4"><div className="font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-[#5e8194]">Department assignment</div><div className="mt-3 grid gap-2 sm:grid-cols-2"><DetailField label="Department" value={assignment.departmentName} /><DetailField label="Assignment state" value={assignment.status} /><DetailField label="Assigned from" value={assignment.source ?? 'Not recorded'} /><DetailField label="Assignment date" value={formatDate(assignment.createdAt)} /></div></div>
-      <div className="border-t border-slate-100 pt-4"><div className="font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-[#5e8194]">Department MMF context</div><div className="mt-3 grid gap-2 sm:grid-cols-2"><DetailField label="DGLP MMF" value={dglpValues || 'Not yet stored'} /><DetailField label="ECHS MMF" value={echsValues || 'Not yet stored'} /></div><p className="mt-3 text-[11px] leading-relaxed text-slate-500">MMF editing is the next workflow stage. No departmental value is inferred when the source does not contain one.</p></div>
+       <div className="border-t border-slate-100 pt-4"><div className="font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-[#5e8194]">Department MMF</div><div className="mt-3 grid gap-2 sm:grid-cols-2"><DetailField label="DGLP MMF" value={formatMmfValue(assignment.currentDglpMmf)} /><DetailField label="ECHS MMF" value={formatMmfValue(assignment.currentEchsMmf)} /></div><p className="mt-3 text-[11px] leading-relaxed text-slate-500">These are departmental quantities. PVMS and NIV remain identifiers and are not budget heads.</p></div>
       <div className="border-t border-slate-100 pt-4"><div className="flex items-center justify-between"><div className="font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-[#5e8194]">Legacy/source lineage</div><Badge tone="info"><FileText size={11} /> {item.legacyRecords.length} source {item.legacyRecords.length === 1 ? 'record' : 'records'}</Badge></div><div className="mt-3 space-y-2">{item.legacyRecords.slice(0, 3).map((record) => <div key={record.id} className="rounded-lg border border-slate-100 bg-[#fbfdfd] p-3"><div className="font-mono text-[10px] font-bold text-[#315d7f]">{record.sourceWorksheet} · row {record.sourceRow}</div><div className="mt-1 text-[11px] font-semibold text-[#1e3447]">{record.nomenclature ?? 'Unnamed source item'}</div><div className="mt-1 text-[10px] text-slate-500">{record.relationship} lineage{record.decision ? ` · ${record.decision}` : ''}</div></div>)}{item.legacyRecords.length > 3 && <div className="text-[10px] text-slate-400">+{item.legacyRecords.length - 3} more preserved source records</div>}</div></div>
       <div className="border-t border-slate-100 pt-4"><div className="font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-[#5e8194]">Review history</div><div className="mt-2 text-[11px] leading-relaxed text-slate-500">{item.vocabularyHistory.length ? `${item.vocabularyHistory.length} linked vocabulary review ${item.vocabularyHistory.length === 1 ? 'record' : 'records'}.` : 'No linked vocabulary review history.'}</div></div>
     </div>
