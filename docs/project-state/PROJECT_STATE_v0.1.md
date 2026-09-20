@@ -6,7 +6,7 @@ Hospital MMF Command Centre is a desktop governance workspace around the hospita
 
 ## Current Stage
 
-Stage 1: workbook inspection, validation, review persistence, and baseline status.
+Stage 3 — Ticket 1: Department Item Assignments.
 
 ## Implementation Status
 
@@ -19,6 +19,7 @@ Stage 1: workbook inspection, validation, review persistence, and baseline statu
 - Vocabulary review workflow: IMPLEMENTED — runtime verified through the API and desktop review queue
 - Source workbook byte storage: PLANNED
 - Canonical vocabulary: IMPLEMENTED — searchable, paginated list with server-side sorting and detail view
+- Department item assignments: IMPLEMENTED — persistence, API, duplicate protection, ACTIVE/REMOVED lifecycle, real department IDs, and history preservation
 - Department workspace: SCAFFOLD
 - MMF editing/history: PLANNED
 - Benchmark prices/forecast: PLANNED
@@ -37,7 +38,7 @@ See `replit.md`. The main UI is in `artifacts/hospital-mmf`; the API route is `a
 
 ## Database State
 
-The `mmf_imports`, `canonical_items`, and `vocabulary_reviews` tables are pushed to the development PostgreSQL database. The API returns the review queue successfully after schema synchronization.
+The MMF, canonical vocabulary, review, department, lineage, and department assignment tables are pushed to the development PostgreSQL database. The API returns persisted department IDs and the review queue successfully after schema synchronization.
 
 ## Completed Work
 
@@ -60,7 +61,7 @@ The `mmf_imports`, `canonical_items`, and `vocabulary_reviews` tables are pushed
 
 ## Tests
 
-Runtime verification completed after installing the locked workspace dependencies and synchronizing the development schema: `GET /api/imports` returned 200, `GET /api/vocabulary-reviews` returned 200, `GET /api/canonical-items` returned 200, and a canonical detail request returned 200. `/canonical-vocabulary` rendered the list state, `/review-queue` rendered successfully, and `/canonical-vocabulary/:id` rendered the canonical values and linked legacy lineage. The detail response included canonical ID, nomenclature, specification, unit, PVMS, NIV, status, linked legacy records, identifier, legacy nomenclature, source metadata, DGLP/ECHS, department data, and review-history fields. Browser console contained only normal Vite/React development messages.
+Stage 3 Ticket 1 runtime verification completed against one persisted department and one canonical item: persisted department IDs were returned; assignment creation succeeded; repeating the assignment returned the same record without duplication; department listing showed it ACTIVE; removal changed it to REMOVED; active listing excluded it while history preserved it; canonical detail and legacy lineage remained intact; and an invalid department was rejected with HTTP 404. API typecheck, workspace typecheck, API build, frontend build, and full production build passed. The existing `/departments` UI rendered with normal Vite/React browser messages and no errors. No assignment UI exists yet, so no assignment-control browser check was applicable.
 
 ## Business Rules
 
@@ -82,7 +83,9 @@ Runtime verification completed after installing the locked workspace dependencie
 
 ## Next Stage
 
-Stage 3: Departments → Department Item Assignments → Department Workspace → MMF Editing → DGLP/ECHS MMF → Revision History.
+Stage 3 — Ticket 2: Department Workspace.
+
+Scope: assigned canonical items → department item list → item-level MMF editing. Do not implement until the next ticket begins.
 
 ## Do Not Break
 
@@ -90,4 +93,4 @@ The supplied workbook remains the authoritative legacy contract. PVMS/NIV is not
 
 ## Git Commit
 
-`feat: add canonical vocabulary server-side sorting`
+`feat: complete department item assignments`

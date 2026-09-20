@@ -1,0 +1,129 @@
+Continue the existing MMF project from the current Git state.
+
+STAGE 3 — TICKET 1: DEPARTMENT ITEM ASSIGNMENTS
+
+The implementation and integration fix are already complete.
+
+The previous agent found and fixed a real issue:
+`/api/departments` was returning synthetic department IDs while assignment endpoints use persisted database department IDs.
+
+The fix is already in the code.
+
+The development database has also been synchronized with the repository schema.
+
+DO NOT redesign anything.
+DO NOT audit the repository.
+DO NOT reread documentation.
+DO NOT modify the assignment implementation unless a verification test exposes an actual defect.
+DO NOT start Department Workspace.
+
+YOUR ONLY JOB:
+
+Run the final verification of Ticket 1.
+
+Use:
+- one real persisted department
+- one real canonical item
+
+If the fresh database has no canonical items, use the EXISTING supported review-decision flow on one real fixture legacy record to create exactly one canonical item.
+
+Do not invent or bulk-create fixture data.
+
+==================================================
+VERIFY THIS EXACT LIFECYCLE
+==================================================
+
+1. GET /api/departments
+   Confirm returned department IDs are real persisted IDs.
+
+2. Create assignment:
+   department + canonical item
+   → success.
+
+3. Repeat the same assignment:
+   → must not create a duplicate.
+
+4. List assignments for that department:
+   → canonical item appears ACTIVE.
+
+5. Remove the assignment:
+   → state becomes REMOVED.
+
+6. List active assignments:
+   → removed item is not active.
+
+7. Retrieve assignment/history:
+   → REMOVED record remains historically present.
+
+8. Retrieve canonical item:
+   → canonical item still exists.
+
+9. Retrieve legacy lineage:
+   → legacy record and lineage remain intact.
+
+10. Attempt assignment using an invalid/nonexistent department:
+    → must be rejected.
+
+11. Run API typecheck.
+
+12. Run frontend/workspace typecheck.
+
+13. Run production build if practical.
+
+14. If the assignment UI already exists, perform a minimal browser check using the real department ID and canonical item.
+
+If everything passes, DO NOT CHANGE IMPLEMENTATION.
+
+==================================================
+BATON
+==================================================
+
+Update the CURRENT project-state baton.
+
+Mark:
+
+Stage 3 — Ticket 1
+Department Item Assignments
+
+IMPLEMENTED:
+- assignment model
+- persistence
+- API
+- duplicate protection
+- ACTIVE/REMOVED lifecycle
+- real department IDs
+- history preservation
+
+VERIFIED:
+- exact lifecycle checks above
+- typechecks
+- build
+- browser check if performed
+
+NEXT TICKET:
+
+Stage 3 — Ticket 2
+Department Workspace
+
+Scope:
+
+assigned canonical items
+→ department item list
+→ item-level MMF editing
+
+Do not implement it now.
+
+==================================================
+COMMIT
+==================================================
+
+If the baton or any necessary verification fix changed:
+
+git add -A
+git commit -m "feat: complete department item assignments"
+
+Otherwise leave the existing implementation commit intact.
+
+Ensure the working tree is clean.
+
+START WITH THE LIFECYCLE CHECKS.
