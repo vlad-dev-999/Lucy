@@ -15,15 +15,22 @@ import {
 import {
   CreateCanonicalItemBody,
   CreateCanonicalItemResponse,
+  CreateDepartmentAssignmentBody,
+  CreateDepartmentAssignmentResponse,
   DecideVocabularyReviewBody,
   DecideVocabularyReviewParams,
   DecideVocabularyReviewResponse,
   GetCanonicalItemParams,
   GetCanonicalItemResponse,
+  ListDepartmentAssignmentsParams,
+  ListDepartmentAssignmentsResponse,
   ListCanonicalItemsQueryParams,
   ListCanonicalItemsResponse,
   ListVocabularyReviewsQueryParams,
   ListVocabularyReviewsResponse,
+  UpdateDepartmentAssignmentBody,
+  UpdateDepartmentAssignmentParams,
+  UpdateDepartmentAssignmentResponse,
   type DepartmentInput,
   type ImportInput,
   type LegacyRowInput,
@@ -31,6 +38,7 @@ import {
 import { db } from "@workspace/db";
 import {
   canonicalItemsTable,
+  departmentItemAssignmentsTable,
   departmentEntitiesTable,
   legacyCanonicalLineageTable,
   legacyItemDepartmentsTable,
@@ -184,6 +192,118 @@ async function getReviewCandidateRecords(reviewId: string) {
   return getLegacyRecords(candidates.map((candidate) => candidate.legacyItemId));
 }
 
+type DepartmentAssignmentRow = {
+  id: string;
+  departmentId: string;
+  departmentName: string;
+  canonicalItemId: string;
+  canonicalNumber: number;
+  status: string;
+  sourceImportId: string | null;
+  source: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+function toDepartmentAssignmentResponse(row: DepartmentAssignmentRow) {
+  return {
+    id: row.id,
+    departmentId: row.departmentId,
+    departmentName: row.departmentName,
+    canonicalItemId: row.canonicalItemId,
+    canonicalId: canonicalCode(row.canonicalNumber),
+    status: row.status,
+    sourceImportId: row.sourceImportId,
+    source: row.source,
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
+  };
+}
+
+async function getDepartmentAssignment(id: string) {
+  const [row] = await db
+    .select({
+      id: departmentItemAssignmentsTable.id,
+      departmentId: departmentItemAssignmentsTable.departmentId,
+      departmentName: departmentEntitiesTable.name,
+      canonicalItemId: departmentItemAssignmentsTable.canonicalItemId,
+      canonicalNumber: canonicalItemsTable.canonicalNumber,
+      status: departmentItemAssignmentsTable.status,
+      sourceImportId: departmentItemAssignmentsTable.sourceImportId,
+      source: departmentItemAssignmentsTable.source,
+      createdAt: departmentItemAssignmentsTable.createdAt,
+      updatedAt: departmentItemAssignmentsTable.updatedAt,
+    })
+    .from(departmentItemAssignmentsTable)
+    .innerJoin(
+      departmentEntitiesTable,
+      eq(departmentItemAssignmentsTable.departmentId, departmentEntitiesTable.id),
+    )
+    .innerJoin(
+      canonicalItemsTable,
+      eq(departmentItemAssignmentsTable.canonicalItemId, canonicalItemsTable.id),
+    )
+    .where(eq(departmentItemAssignmentsTable.id, id))
+    .limit(1);
+  return row ? toDepartmentAssignmentResponse(row) : null;
+}
+
+async function listAssignmentsForCanonical(canonicalItemId: string) {
+  const rows = await db
+    .select({
+      id: departmentItemAssignmentsTable.id,
+      departmentId: departmentItemAssignmentsTable.departmentId,
+      departmentName: departmentEntitiesTable.name,
+      canonicalItemId: departmentItemAssignmentsTable.canonicalItemId,
+      canonicalNumber: canonicalItemsTable.canonicalNumber,
+      status: departmentItemAssignmentsTable.status,
+      sourceImportId: departmentItemAssignmentsTable.sourceImportId,
+      source: departmentItemAssignmentsTable.source,
+      createdAt: departmentItemAssignmentsTable.createdAt,
+      updatedAt: departmentItemAssignmentsTable.updatedAt,
+    })
+    .from(departmentItemAssignmentsTable)
+    .innerJoin(
+      departmentEntitiesTable,
+      eq(departmentItemAssignmentsTable.departmentId, departmentEntitiesTable.id),
+    )
+    .innerJoin(
+      canonicalItemsTable,
+      eq(departmentItemAssignmentsTable.canonicalItemId, canonicalItemsTable.id),
+    )
+    .where(eq(departmentItemAssignmentsTable.canonicalItemId, canonicalItemId))
+    .orderBy(asc(departmentEntitiesTable.name));
+  return rows.map(toDepartmentAssignmentResponse);
+}
+
+async function listAssignmentsForDepartment(departmentId: string) {
+  const rows = await db
+    .select({
+      id: departmentItemAssignmentsTable.id,
+      departmentId: departmentItemAssignmentsTable.departmentId,
+      departmentName: departmentEntitiesTable.name,
+      canonicalItemId: departmentItemAssignmentsTable.canonicalItemId,
+      canonicalNumber: canonicalItemsTable.canonicalNumber,
+      status: departmentItemAssignmentsTable.status,
+      sourceImportId: departmentItemAssignmentsTable.sourceImportId,
+      source: departmentItemAssignmentsTable.source,
+      createdAt: departmentItemAssignmentsTable.createdAt,
+      updatedAt: departmentItemAssignmentsTable.updatedAt,
+    })
+    .from(departmentItemAssignmentsTable)
+    .innerJoin(
+      departmentEntitiesTable,
+      eq(departmentItemAssignmentsTable.departmentId, departmentEntitiesTable.id),
+    )
+    .innerJoin(
+      canonicalItemsTable,
+      eq(departmentItemAssignmentsTable.canonicalItemId, canonicalItemsTable.id),
+    )
+    .where(eq(departmentItemAssignmentsTable.departmentId, departmentId))
+    .orderBy(asc(canonicalItemsTable.canonicalNumber));
+  return rows.map(toDepartmentAssignmentResponse);
+}
+
 async function toReviewResponse(review: typeof vocabularyReviewsTable.$inferSelect) {
   return {
     id: review.id,
@@ -249,6 +369,7 @@ async function toCanonicalDetail(canonical: typeof canonicalItemsTable.$inferSel
   const departmentNames = new Set(
     legacyRecords.flatMap((record) => record.departments.map((department) => department.name)),
   );
+  const assignments = await listAssignmentsForCanonical(canonical.id);
 
   return {
     id: canonical.id,
@@ -262,6 +383,7 @@ async function toCanonicalDetail(canonical: typeof canonicalItemsTable.$inferSel
     departmentCount: departmentNames.size,
     legacyRecords: legacyRecordsWithLineage,
     vocabularyHistory: reviews,
+    assignments,
   };
 }
 
@@ -602,6 +724,133 @@ async function updateLineage(
     }
   }
 }
+
+router.get("/departments/:departmentId/assignments", async (req, res, next) => {
+  try {
+    const params = ListDepartmentAssignmentsParams.parse(req.params);
+    const [department] = await db
+      .select({ id: departmentEntitiesTable.id })
+      .from(departmentEntitiesTable)
+      .where(eq(departmentEntitiesTable.id, params.departmentId))
+      .limit(1);
+    if (!department) {
+      res.status(404).json({ error: "Department not found" });
+      return;
+    }
+    res.json(ListDepartmentAssignmentsResponse.parse(
+      await listAssignmentsForDepartment(params.departmentId),
+    ));
+  } catch (error) {
+    req.log.error({ error }, "Failed to list department assignments");
+    next(error);
+  }
+});
+
+router.post("/departments/:departmentId/assignments", async (req, res, next) => {
+  try {
+    const params = ListDepartmentAssignmentsParams.parse(req.params);
+    const input = CreateDepartmentAssignmentBody.parse(req.body);
+    const [department] = await db
+      .select({ id: departmentEntitiesTable.id })
+      .from(departmentEntitiesTable)
+      .where(eq(departmentEntitiesTable.id, params.departmentId))
+      .limit(1);
+    if (!department) {
+      res.status(404).json({ error: "Department not found" });
+      return;
+    }
+    const [canonical] = await db
+      .select({ id: canonicalItemsTable.id })
+      .from(canonicalItemsTable)
+      .where(eq(canonicalItemsTable.id, input.canonicalItemId))
+      .limit(1);
+    if (!canonical) {
+      res.status(404).json({ error: "Canonical item not found" });
+      return;
+    }
+    if (input.sourceImportId) {
+      const [sourceImport] = await db
+        .select({ id: mmfImportsTable.id })
+        .from(mmfImportsTable)
+        .where(eq(mmfImportsTable.id, input.sourceImportId))
+        .limit(1);
+      if (!sourceImport) {
+        res.status(404).json({ error: "Source import not found" });
+        return;
+      }
+    }
+
+    const [existing] = await db
+      .select({ id: departmentItemAssignmentsTable.id })
+      .from(departmentItemAssignmentsTable)
+      .where(
+        and(
+          eq(departmentItemAssignmentsTable.departmentId, params.departmentId),
+          eq(departmentItemAssignmentsTable.canonicalItemId, input.canonicalItemId),
+        ),
+      )
+      .limit(1);
+    if (existing) {
+      const response = await getDepartmentAssignment(existing.id);
+      if (!response) throw new Error("Existing assignment could not be loaded");
+      res.status(200).json(CreateDepartmentAssignmentResponse.parse(response));
+      return;
+    }
+
+    const [created] = await db
+      .insert(departmentItemAssignmentsTable)
+      .values({
+        id: `assignment_${crypto.randomUUID()}`,
+        departmentId: params.departmentId,
+        canonicalItemId: input.canonicalItemId,
+        status: input.status,
+        sourceImportId: input.sourceImportId ?? null,
+        source: input.source ?? null,
+      })
+      .returning({ id: departmentItemAssignmentsTable.id });
+    if (!created) throw new Error("Department assignment could not be created");
+    const response = await getDepartmentAssignment(created.id);
+    if (!response) throw new Error("Created assignment could not be loaded");
+    res.status(201).json(CreateDepartmentAssignmentResponse.parse(response));
+  } catch (error) {
+    req.log.error({ error }, "Failed to create department assignment");
+    next(error);
+  }
+});
+
+router.patch(
+  "/departments/:departmentId/assignments/:canonicalItemId",
+  async (req, res, next) => {
+    try {
+      const params = UpdateDepartmentAssignmentParams.parse(req.params);
+      const input = UpdateDepartmentAssignmentBody.parse(req.body);
+      const [existing] = await db
+        .select({ id: departmentItemAssignmentsTable.id })
+        .from(departmentItemAssignmentsTable)
+        .where(
+          and(
+            eq(departmentItemAssignmentsTable.departmentId, params.departmentId),
+            eq(departmentItemAssignmentsTable.canonicalItemId, params.canonicalItemId),
+          ),
+        )
+        .limit(1);
+      if (!existing) {
+        res.status(404).json({ error: "Department assignment not found" });
+        return;
+      }
+      await db
+        .update(departmentItemAssignmentsTable)
+        .set({ status: input.status, updatedAt: new Date() })
+        .where(eq(departmentItemAssignmentsTable.id, existing.id));
+      const response = await getDepartmentAssignment(existing.id);
+      if (!response) throw new Error("Updated assignment could not be loaded");
+      res.json(UpdateDepartmentAssignmentResponse.parse(response));
+    } catch (error) {
+      req.log.error({ error }, "Failed to update department assignment");
+      next(error);
+    }
+  },
+);
 
 router.get("/canonical-items", async (req, res, next) => {
   try {

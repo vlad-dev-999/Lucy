@@ -89,6 +89,32 @@ export const canonicalItemsTable = pgTable("canonical_items", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const departmentItemAssignmentsTable = pgTable(
+  "department_item_assignments",
+  {
+    id: text("id").primaryKey(),
+    departmentId: text("department_id")
+      .notNull()
+      .references(() => departmentEntitiesTable.id, { onDelete: "restrict" }),
+    canonicalItemId: text("canonical_item_id")
+      .notNull()
+      .references(() => canonicalItemsTable.id, { onDelete: "restrict" }),
+    status: text("status").notNull().default("ACTIVE"),
+    sourceImportId: text("source_import_id").references(() => mmfImportsTable.id, {
+      onDelete: "restrict",
+    }),
+    source: text("source"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    departmentCanonicalUnique: uniqueIndex("department_item_assignments_unique").on(
+      table.departmentId,
+      table.canonicalItemId,
+    ),
+  }),
+);
+
 export const legacyCanonicalLineageTable = pgTable(
   "legacy_canonical_lineage",
   {
@@ -154,6 +180,7 @@ export type LegacyItem = typeof legacyItemsTable.$inferSelect;
 export type DepartmentEntity = typeof departmentEntitiesTable.$inferSelect;
 export type LegacyItemDepartment = typeof legacyItemDepartmentsTable.$inferSelect;
 export type CanonicalItem = typeof canonicalItemsTable.$inferSelect;
+export type DepartmentItemAssignment = typeof departmentItemAssignmentsTable.$inferSelect;
 export type LegacyCanonicalLineage = typeof legacyCanonicalLineageTable.$inferSelect;
 export type VocabularyReview = typeof vocabularyReviewsTable.$inferSelect;
 export type VocabularyReviewCandidate =

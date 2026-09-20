@@ -7,5 +7,5 @@
  */
 
 export interface HealthStatus {
-  status: string;
+  status?: string;
 }

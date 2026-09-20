@@ -1,0 +1,120 @@
+Continue the existing MMF project from the current Git state.
+
+STAGE 2 IS COMPLETE.
+
+Do NOT audit the repository.
+Do NOT reread the full documentation.
+Do NOT revisit Stage 2.
+Do NOT redesign existing screens.
+
+The current project-state baton is authoritative for the completed Stage 2 state.
+
+==================================================
+STAGE 3 — TICKET 1
+DEPARTMENT ITEM ASSIGNMENTS
+==================================================
+
+The next goal is to move from the canonical vocabulary into the actual departmental MMF workflow.
+
+This ticket establishes:
+
+CANONICAL ITEM
+      ↓
+DEPARTMENT ASSIGNMENT
+      ↓
+DEPARTMENT WORKSPACE
+
+Your ONLY job in this run is to implement the Department Item Assignment foundation.
+
+==================================================
+BUSINESS RULE
+==================================================
+
+The imported MMF workbook contains exactly:
+
+69 existing department/functional destinations.
+
+These are the authoritative departments for the application.
+
+DO NOT invent, rename, consolidate, or replace the department list.
+
+Use the existing department records already present in the project.
+
+If department records are currently derived from the import, preserve that behavior.
+
+==================================================
+DATA MODEL
+==================================================
+
+Create/complete the relationship:
+
+Department
+    ↕
+Canonical Item
+
+An assignment represents that a canonical item is relevant to a particular department.
+
+Do NOT copy the entire canonical item into the department.
+
+The department workspace will reference the canonical vocabulary through this assignment.
+
+An assignment should support, as appropriate:
+
+- department
+- canonical item
+- assignment status
+- created timestamp
+- updated timestamp
+- source/provenance if the existing architecture supports it
+
+Use a stable unique constraint preventing duplicate:
+
+department + canonical item
+
+assignments.
+
+Do not create duplicate assignments.
+
+Do not modify or duplicate Canonical Item records.
+
+==================================================
+LEGACY LINEAGE
+==================================================
+
+Preserve the existing relationship:
+
+Canonical Item
+    ↓
+Legacy Records
+
+Department assignment must reference the Canonical Item.
+
+Do NOT attach departments directly by duplicating legacy records.
+
+Where useful, expose which legacy records/source departments contributed to the canonical item's department relevance.
+
+Do not destroy existing source information.
+
+==================================================
+ASSIGNMENT STATES
+==================================================
+
+Keep the initial state model simple.
+
+At minimum support:
+
+ACTIVE
+REMOVED
+
+REMOVED means:
+
+"The canonical item is no longer part of this department's working set."
+
+It does NOT mean:
+- delete the canonical item
+- delete the legacy record
+- delete history
+
+Historical assignment records must remain traceable.
+
+If the existing project already has a better status convention, use it

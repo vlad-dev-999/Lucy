@@ -6,7 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 export interface HealthStatus {
-  status: string;
+  status?: string;
 }
 
 export type QualityIssueSeverity = typeof QualityIssueSeverity[keyof typeof QualityIssueSeverity];
@@ -184,6 +184,58 @@ export interface CanonicalItem {
   departmentCount: number;
 }
 
+export type DepartmentItemAssignmentStatus = typeof DepartmentItemAssignmentStatus[keyof typeof DepartmentItemAssignmentStatus];
+
+
+export const DepartmentItemAssignmentStatus = {
+  ACTIVE: 'ACTIVE',
+  REMOVED: 'REMOVED',
+} as const;
+
+export interface DepartmentItemAssignment {
+  id: string;
+  departmentId: string;
+  departmentName: string;
+  canonicalItemId: string;
+  canonicalId: string;
+  status: DepartmentItemAssignmentStatus;
+  /** @nullable */
+  sourceImportId: string | null;
+  /** @nullable */
+  source: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type CreateDepartmentAssignmentInputStatus = typeof CreateDepartmentAssignmentInputStatus[keyof typeof CreateDepartmentAssignmentInputStatus];
+
+
+export const CreateDepartmentAssignmentInputStatus = {
+  ACTIVE: 'ACTIVE',
+  REMOVED: 'REMOVED',
+} as const;
+
+export interface CreateDepartmentAssignmentInput {
+  canonicalItemId: string;
+  status?: CreateDepartmentAssignmentInputStatus;
+  /** @nullable */
+  sourceImportId?: string | null;
+  /** @nullable */
+  source?: string | null;
+}
+
+export type UpdateDepartmentAssignmentInputStatus = typeof UpdateDepartmentAssignmentInputStatus[keyof typeof UpdateDepartmentAssignmentInputStatus];
+
+
+export const UpdateDepartmentAssignmentInputStatus = {
+  ACTIVE: 'ACTIVE',
+  REMOVED: 'REMOVED',
+} as const;
+
+export interface UpdateDepartmentAssignmentInput {
+  status: UpdateDepartmentAssignmentInputStatus;
+}
+
 export type LegacyItemDepartmentsItem = {
   name: string;
   /** @nullable */
@@ -254,6 +306,7 @@ export type CanonicalItemDetailLegacyRecord = LegacyItem & ({
 export type CanonicalItemDetail = CanonicalItem & {
   legacyRecords: CanonicalItemDetailLegacyRecord[];
   vocabularyHistory: CanonicalItemDetailVocabularyHistoryItem[];
+  assignments: DepartmentItemAssignment[];
 };
 
 export interface CanonicalItemPage {

@@ -24,7 +24,9 @@ import type {
   CanonicalItemPage,
   CommitImportInput,
   CreateCanonicalItemInput,
+  CreateDepartmentAssignmentInput,
   Department,
+  DepartmentItemAssignment,
   HealthStatus,
   ImportDetail,
   ImportInput,
@@ -32,6 +34,7 @@ import type {
   ListCanonicalItemsParams,
   ListVocabularyReviewsParams,
   Overview,
+  UpdateDepartmentAssignmentInput,
   VocabularyDecisionInput,
   VocabularyReview,
   VocabularyReviewPage
@@ -295,6 +298,263 @@ export function useListDepartments<TData = Awaited<ReturnType<typeof listDepartm
 
 
 
+
+export const getListDepartmentAssignmentsUrl = (departmentId: string,) => {
+
+
+
+
+  return `/api/departments/${departmentId}/assignments`
+}
+
+/**
+ * @summary List canonical items assigned to a department
+ */
+export const listDepartmentAssignments = async (departmentId: string, options?: Parameters<typeof customFetch>[1]): Promise<DepartmentItemAssignment[]> => {
+
+  return customFetch<DepartmentItemAssignment[]>(getListDepartmentAssignmentsUrl(departmentId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListDepartmentAssignmentsQueryKey = (departmentId: string,) => {
+    return [
+    `/api/departments/${departmentId}/assignments`
+    ] as const;
+    }
+
+
+export const getListDepartmentAssignmentsQueryOptions = <TData = Awaited<ReturnType<typeof listDepartmentAssignments>>, TError = ErrorType<void>>(departmentId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listDepartmentAssignments>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListDepartmentAssignmentsQueryKey(departmentId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listDepartmentAssignments>>> = ({ signal }) => listDepartmentAssignments(departmentId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: departmentId !== null && departmentId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listDepartmentAssignments>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListDepartmentAssignmentsQueryResult = NonNullable<Awaited<ReturnType<typeof listDepartmentAssignments>>>
+export type ListDepartmentAssignmentsQueryError = ErrorType<void>
+
+
+/**
+ * @summary List canonical items assigned to a department
+ */
+
+export function useListDepartmentAssignments<TData = Awaited<ReturnType<typeof listDepartmentAssignments>>, TError = ErrorType<void>>(
+ departmentId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listDepartmentAssignments>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListDepartmentAssignmentsQueryOptions(departmentId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateDepartmentAssignmentUrl = (departmentId: string,) => {
+
+
+
+
+  return `/api/departments/${departmentId}/assignments`
+}
+
+/**
+ * @summary Assign a canonical item to a department
+ */
+export const createDepartmentAssignment = async (departmentId: string,
+    createDepartmentAssignmentInput: CreateDepartmentAssignmentInput, options?: Parameters<typeof customFetch>[1]): Promise<DepartmentItemAssignment> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<DepartmentItemAssignment>(getCreateDepartmentAssignmentUrl(departmentId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(createDepartmentAssignmentInput)
+  }
+);}
+
+
+
+
+
+export const getCreateDepartmentAssignmentMutationKey = () => ['createDepartmentAssignment'] as const;
+
+export const getCreateDepartmentAssignmentMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createDepartmentAssignment>>, TError,CreateDepartmentAssignmentMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createDepartmentAssignment>>, TError,CreateDepartmentAssignmentMutationVariables, TContext> => {
+
+const mutationKey = getCreateDepartmentAssignmentMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createDepartmentAssignment>>, CreateDepartmentAssignmentMutationVariables> = (props) => {
+          const {departmentId,data} = props ?? {};
+
+          return  createDepartmentAssignment(departmentId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateDepartmentAssignmentMutationResult = NonNullable<Awaited<ReturnType<typeof createDepartmentAssignment>>>
+    export type CreateDepartmentAssignmentMutationBody = BodyType<CreateDepartmentAssignmentInput>
+    export type CreateDepartmentAssignmentMutationError = ErrorType<void>
+    export type CreateDepartmentAssignmentMutationVariables = {departmentId: string;data: BodyType<CreateDepartmentAssignmentInput>}
+
+    /**
+ * @summary Assign a canonical item to a department
+ */
+export const useCreateDepartmentAssignment = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createDepartmentAssignment>>, TError,CreateDepartmentAssignmentMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createDepartmentAssignment>>,
+        TError,
+        CreateDepartmentAssignmentMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCreateDepartmentAssignmentMutationOptions(options));
+    }
+
+export const getUpdateDepartmentAssignmentUrl = (departmentId: string,
+    canonicalItemId: string,) => {
+
+
+
+
+  return `/api/departments/${departmentId}/assignments/${canonicalItemId}`
+}
+
+/**
+ * @summary Change a department assignment state without deleting history
+ */
+export const updateDepartmentAssignment = async (departmentId: string,
+    canonicalItemId: string,
+    updateDepartmentAssignmentInput: UpdateDepartmentAssignmentInput, options?: Parameters<typeof customFetch>[1]): Promise<DepartmentItemAssignment> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<DepartmentItemAssignment>(getUpdateDepartmentAssignmentUrl(departmentId,canonicalItemId),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updateDepartmentAssignmentInput)
+  }
+);}
+
+
+
+
+
+export const getUpdateDepartmentAssignmentMutationKey = () => ['updateDepartmentAssignment'] as const;
+
+export const getUpdateDepartmentAssignmentMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateDepartmentAssignment>>, TError,UpdateDepartmentAssignmentMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateDepartmentAssignment>>, TError,UpdateDepartmentAssignmentMutationVariables, TContext> => {
+
+const mutationKey = getUpdateDepartmentAssignmentMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateDepartmentAssignment>>, UpdateDepartmentAssignmentMutationVariables> = (props) => {
+          const {departmentId,canonicalItemId,data} = props ?? {};
+
+          return  updateDepartmentAssignment(departmentId,canonicalItemId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateDepartmentAssignmentMutationResult = NonNullable<Awaited<ReturnType<typeof updateDepartmentAssignment>>>
+    export type UpdateDepartmentAssignmentMutationBody = BodyType<UpdateDepartmentAssignmentInput>
+    export type UpdateDepartmentAssignmentMutationError = ErrorType<void>
+    export type UpdateDepartmentAssignmentMutationVariables = {departmentId: string;canonicalItemId: string;data: BodyType<UpdateDepartmentAssignmentInput>}
+
+    /**
+ * @summary Change a department assignment state without deleting history
+ */
+export const useUpdateDepartmentAssignment = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateDepartmentAssignment>>, TError,UpdateDepartmentAssignmentMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateDepartmentAssignment>>,
+        TError,
+        UpdateDepartmentAssignmentMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUpdateDepartmentAssignmentMutationOptions(options));
+    }
 
 export const getListImportsUrl = () => {
 

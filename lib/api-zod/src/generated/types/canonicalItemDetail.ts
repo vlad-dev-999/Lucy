@@ -8,8 +8,10 @@
 import type { CanonicalItem } from './canonicalItem';
 import type { CanonicalItemDetailLegacyRecord } from './canonicalItemDetailLegacyRecord';
 import type { CanonicalItemDetailVocabularyHistoryItem } from './canonicalItemDetailVocabularyHistoryItem';
+import type { DepartmentItemAssignment } from './departmentItemAssignment';
 
 export type CanonicalItemDetail = CanonicalItem & {
   legacyRecords: CanonicalItemDetailLegacyRecord[];
   vocabularyHistory: CanonicalItemDetailVocabularyHistoryItem[];
+  assignments: DepartmentItemAssignment[];
 };

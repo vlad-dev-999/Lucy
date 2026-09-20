@@ -16,6 +16,8 @@ tags:
     description: Legacy workbook imports and immutable baselines
   - name: departments
     description: Department vocabulary discovered from legacy workbooks
+  - name: assignments
+    description: Department item assignments to the canonical vocabulary
   - name: vocabulary
     description: Canonical vocabulary and human review decisions
 paths:
@@ -58,6 +60,74 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Department"
+  /departments/{departmentId}/assignments:
+    get:
+      operationId: listDepartmentAssignments
+      tags: [assignments]
+      summary: List canonical items assigned to a department
+      parameters:
+        - $ref: "#/components/parameters/DepartmentId"
+      responses:
+        "200":
+          description: Department item assignments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DepartmentItemAssignment"
+        "404":
+          description: Department not found
+    post:
+      operationId: createDepartmentAssignment
+      tags: [assignments]
+      summary: Assign a canonical item to a department
+      parameters:
+        - $ref: "#/components/parameters/DepartmentId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateDepartmentAssignmentInput"
+      responses:
+        "201":
+          description: Assignment created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DepartmentItemAssignment"
+        "200":
+          description: Existing assignment returned without creating a duplicate
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DepartmentItemAssignment"
+        "404":
+          description: Department or canonical item not found
+  /departments/{departmentId}/assignments/{canonicalItemId}:
+    patch:
+      operationId: updateDepartmentAssignment
+      tags: [assignments]
+      summary: Change a department assignment state without deleting history
+      parameters:
+        - $ref: "#/components/parameters/DepartmentId"
+        - $ref: "#/components/parameters/CanonicalItemId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateDepartmentAssignmentInput"
+      responses:
+        "200":
+          description: Assignment updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DepartmentItemAssignment"
+        "404":
+          description: Assignment not found
   /imports:
     get:
       operationId: listImports
@@ -305,14 +375,18 @@ components:
       required: true
       schema:
         type: string
+    DepartmentId:
+      name: departmentId
+      in: path
+      required: true
+      schema:
+        type: string
   schemas:
     HealthStatus:
       type: object
       properties:
         status:
           type: string
-      required:
-        - status
     QualityIssue:
       type: object
       required: [code, severity, title, detail, rowNumbers]
@@ -555,6 +629,54 @@ components:
           type: integer
         departmentCount:
           type: integer
+    DepartmentItemAssignment:
+      type: object
+      required: [id, departmentId, departmentName, canonicalItemId, canonicalId, status, sourceImportId, source, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+        departmentId:
+          type: string
+        departmentName:
+          type: string
+        canonicalItemId:
+          type: string
+        canonicalId:
+          type: string
+        status:
+          type: string
+          enum: [ACTIVE, REMOVED]
+        sourceImportId:
+          type: ["string", "null"]
+        source:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    CreateDepartmentAssignmentInput:
+      type: object
+      required: [canonicalItemId]
+      properties:
+        canonicalItemId:
+          type: string
+        status:
+          type: string
+          enum: [ACTIVE, REMOVED]
+          default: ACTIVE
+        sourceImportId:
+          type: ["string", "null"]
+        source:
+          type: ["string", "null"]
+    UpdateDepartmentAssignmentInput:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [ACTIVE, REMOVED]
     LegacyItem:
       type: object
       required: [id, importId, sourceWorksheet, sourceRow, systemId, identifier, nomenclature, specification, unit, pvms, niv, previousPvmsMmf, currentPvmsMmf, previousDglpMmf, currentDglpMmf, previousEchsMmf, currentEchsMmf, lpr, sourceValues, departments]
@@ -616,7 +738,7 @@ components:
       allOf:
         - $ref: "#/components/schemas/CanonicalItem"
         - type: object
-          required: [legacyRecords, vocabularyHistory]
+          required: [legacyRecords, vocabularyHistory, assignments]
           properties:
             legacyRecords:
               type: array
@@ -638,6 +760,10 @@ components:
                     type: string
                   detail:
                     type: string
+            assignments:
+              type: array
+              items:
+                $ref: "#/components/schemas/DepartmentItemAssignment"
     CanonicalItemDetailLegacyRecord:
       allOf:
         - $ref: "#/components/schemas/LegacyItem"

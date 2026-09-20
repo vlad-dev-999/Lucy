@@ -13,7 +13,7 @@ import * as zod from 'zod';
  * @summary Health check
  */
 export const HealthCheckResponse = zod.object({
-  "status": zod.string()
+  "status": zod.string().optional()
 })
 
 
@@ -64,6 +64,84 @@ export const ListDepartmentsResponseItem = zod.object({
   "sourceColumnStart": zod.number().int()
 })
 export const ListDepartmentsResponse = zod.array(ListDepartmentsResponseItem)
+
+
+/**
+ * @summary List canonical items assigned to a department
+ */
+export const ListDepartmentAssignmentsParams = zod.object({
+  "departmentId": zod.coerce.string()
+})
+
+export const ListDepartmentAssignmentsResponseItem = zod.object({
+  "id": zod.string(),
+  "departmentId": zod.string(),
+  "departmentName": zod.string(),
+  "canonicalItemId": zod.string(),
+  "canonicalId": zod.string(),
+  "status": zod.enum(['ACTIVE', 'REMOVED']),
+  "sourceImportId": zod.string().nullable(),
+  "source": zod.string().nullable(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+export const ListDepartmentAssignmentsResponse = zod.array(ListDepartmentAssignmentsResponseItem)
+
+
+/**
+ * @summary Assign a canonical item to a department
+ */
+export const CreateDepartmentAssignmentParams = zod.object({
+  "departmentId": zod.coerce.string()
+})
+
+export const createDepartmentAssignmentBodyStatusDefault = `ACTIVE`;
+
+export const CreateDepartmentAssignmentBody = zod.object({
+  "canonicalItemId": zod.string(),
+  "status": zod.enum(['ACTIVE', 'REMOVED']).default(createDepartmentAssignmentBodyStatusDefault),
+  "sourceImportId": zod.string().nullish(),
+  "source": zod.string().nullish()
+})
+
+export const CreateDepartmentAssignmentResponse = zod.object({
+  "id": zod.string(),
+  "departmentId": zod.string(),
+  "departmentName": zod.string(),
+  "canonicalItemId": zod.string(),
+  "canonicalId": zod.string(),
+  "status": zod.enum(['ACTIVE', 'REMOVED']),
+  "sourceImportId": zod.string().nullable(),
+  "source": zod.string().nullable(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Change a department assignment state without deleting history
+ */
+export const UpdateDepartmentAssignmentParams = zod.object({
+  "departmentId": zod.coerce.string(),
+  "canonicalItemId": zod.coerce.string()
+})
+
+export const UpdateDepartmentAssignmentBody = zod.object({
+  "status": zod.enum(['ACTIVE', 'REMOVED'])
+})
+
+export const UpdateDepartmentAssignmentResponse = zod.object({
+  "id": zod.string(),
+  "departmentId": zod.string(),
+  "departmentName": zod.string(),
+  "canonicalItemId": zod.string(),
+  "canonicalId": zod.string(),
+  "status": zod.enum(['ACTIVE', 'REMOVED']),
+  "sourceImportId": zod.string().nullable(),
+  "source": zod.string().nullable(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
 
 
 /**
@@ -380,6 +458,18 @@ export const CreateCanonicalItemResponse = zod.object({
   "status": zod.string(),
   "title": zod.string(),
   "detail": zod.string()
+})),
+  "assignments": zod.array(zod.object({
+  "id": zod.string(),
+  "departmentId": zod.string(),
+  "departmentName": zod.string(),
+  "canonicalItemId": zod.string(),
+  "canonicalId": zod.string(),
+  "status": zod.enum(['ACTIVE', 'REMOVED']),
+  "sourceImportId": zod.string().nullable(),
+  "source": zod.string().nullable(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
 }))
 }))
 
@@ -441,6 +531,18 @@ export const GetCanonicalItemResponse = zod.object({
   "status": zod.string(),
   "title": zod.string(),
   "detail": zod.string()
+})),
+  "assignments": zod.array(zod.object({
+  "id": zod.string(),
+  "departmentId": zod.string(),
+  "departmentName": zod.string(),
+  "canonicalItemId": zod.string(),
+  "canonicalId": zod.string(),
+  "status": zod.enum(['ACTIVE', 'REMOVED']),
+  "sourceImportId": zod.string().nullable(),
+  "source": zod.string().nullable(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
 }))
 }))
 
