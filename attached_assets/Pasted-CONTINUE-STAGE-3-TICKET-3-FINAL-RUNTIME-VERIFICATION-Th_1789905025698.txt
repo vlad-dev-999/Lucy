@@ -1,0 +1,50 @@
+CONTINUE STAGE 3 TICKET 3 — FINAL RUNTIME VERIFICATION
+This is a fresh Replit instance continuing the existing repository.
+Do not rebuild or redesign anything. Do not perform a broad audit. Do not reread the full documentation. Start from the existing code and current baton.
+Stage 3 Ticket 1 — Department Item Assignments: complete.
+Stage 3 Ticket 2 — Department Workspace: complete and verified, commit f113e9a.
+Stage 3 Ticket 3 — Department MMF Editing: implementation was completed by the previous instance. It reported:
+department-scoped MMF persistence/revision model added
+DGLP/ECHS exposed through the assignment contract
+generated client updated
+inline DGLP/ECHS editors implemented
+independent field updates
+validation
+save/cancel states
+success/error feedback
+persisted values in table and detail panel
+API typecheck passed
+frontend typecheck passed
+database schema successfully pushed
+API production build passed
+web production build passed
+The previous instance stopped immediately before final live verification because of the Replit quota limit.
+Your entire task now is to finish and verify Ticket 3.
+Start/restart the managed API and web workflows.
+Verify API health returns HTTP 200.
+Open Department Workspace using a real persisted department.
+Confirm an ACTIVE assignment displays DGLP and ECHS MMF values.
+Change DGLP and save; verify persistence.
+Change ECHS independently and save; verify persistence.
+Reload and verify both values remain correct.
+Verify the MMF revision/history data records the change with previous/new values, department, canonical item, user and timestamp to the extent implemented by the new model.
+Test invalid and negative MMF input.
+Confirm REMOVED assignments cannot be edited.
+Confirm department-scoped API routes do not allow one department's assignment/MMF to be manipulated through another department's route.
+Check browser console for application errors.
+If a specific runtime defect is found, fix only that defect. Do not expand scope.
+Then update the existing: docs/project-state/PROJECT_STATE_v0.1.md
+Record Ticket 3 as IMPLEMENTED/VERIFIED only for functionality actually verified.
+Commit:
+feat: implement department mmf editing
+Do not implement:
+New Item Proposals
+Common-use MMF
+Department submission
+Benchmark prices
+Forecasting
+RBAC/Administration
+Freeze/release
+Amendments
+XLSX export
+No planning essay. Start with the live runtime verification.
