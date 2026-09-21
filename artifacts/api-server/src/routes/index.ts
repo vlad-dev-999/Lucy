@@ -10,5 +10,6 @@ router.use(healthRouter);
 router.use(mmfRouter);
 router.use(stage4Router);
 router.use(canonicalRouter);
+router.use(stage4Router);
 
 export default router;
