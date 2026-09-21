@@ -6,7 +6,7 @@ Hospital MMF Command Centre is a desktop governance workspace around the hospita
 
 ## Current Stage
 
-Stage 3 — Ticket 3: Department MMF Editing.
+Stage 4 — New Item Proposals + Common-use MMF + Department Submission.
 
 ## Implementation Status
 
@@ -22,6 +22,9 @@ Stage 3 — Ticket 3: Department MMF Editing.
 - Department item assignments: IMPLEMENTED — persistence, API, duplicate protection, ACTIVE/REMOVED lifecycle, real department IDs, and history preservation
 - Department workspace: IMPLEMENTED — runtime verified with a persisted department, active assignment, removed-assignment exclusion, canonical detail, and source lineage
 - MMF editing/history: IMPLEMENTED — VERIFIED with independent DGLP/ECHS persistence, validation, department scope enforcement, and revision history
+- New item proposals (Ticket 4.1): IMPLEMENTED — persisted PENDING/APPROVED/REJECTED lifecycle, canonical search-before-proposal API/UI, and no automatic canonical creation
+- Common-use MMF (Ticket 4.2): IMPLEMENTED — separate hospital-scoped DGLP/ECHS persistence and UI action; common-use values are never summed with departmental assignments
+- Department submission (Ticket 4.3): IMPLEMENTED — persisted READY/INCOMPLETE/SUBMITTED derived progress, pre-submission MMF validation, and server-side edit blocking after submission
 - Benchmark prices/forecast: PLANNED
 - Authentication/RBAC: PLANNED
 - Audit log: PLANNED
@@ -38,7 +41,7 @@ See `replit.md`. The main UI is in `artifacts/hospital-mmf`; the API route is `a
 
 ## Database State
 
-The MMF, canonical vocabulary, review, department, lineage, department assignment, and department MMF revision tables are pushed to the development PostgreSQL database. The API returns 69 persisted department IDs. Runtime verification used the supported fixture/bootstrap path to create a canonical item and assignments: the active assignment is returned while the removed assignment is excluded. MMF changes persist against the assignment and create revision records independently of the canonical item.
+The MMF, canonical vocabulary, review, department, lineage, department assignment, department MMF revision, item proposal, common-use MMF, and department submission tables are declared in the development schema. Common-use MMF has a one-per-canonical-item hospital scope and does not alter departmental assignments.
 
 ## Completed Work
 
@@ -65,6 +68,8 @@ Stage 3 Ticket 2 runtime verification completed against persisted development da
 
 Stage 3 Ticket 3 runtime verification completed against supported development fixture/bootstrap data: 69 departments were present; a canonical item and ACTIVE/REMOVED assignments were created through the documented APIs; DGLP and ECHS updates each persisted independently and survived reload; the MMF revision record captured the assignment, department, canonical item, prior/new DGLP and ECHS values, user, and timestamp; a REMOVED assignment could not be edited; and a different department could not manipulate the assignment. The actual Department Workspace preview rendered the inline editor correctly, with no browser-console application errors. Negative and malformed MMF payloads are rejected with HTTP 400 and do not reach persistence. API and web typechecks and production builds passed after the validation-response fix.
 
+Stage 4 runtime verification completed against the supported local PostgreSQL 16 development database after `pnpm --filter @workspace/db run push` applied the declared schema. API health and the web development route started successfully. Canonical search, validated PENDING proposals, independent proposed DGLP/ECHS values, persisted APPROVED and REJECTED lifecycle transitions, and the no-automatic-canonical-creation rule were verified through the API. Common-use MMF creation, partial update, DGLP/ECHS independence, separate storage, and persistence across API restart were verified. Department READY/SUBMITTED progress, submission persistence, hospital-level status, server-side post-submission assignment/MMF lock (HTTP 409), and unaffected edits in another department were verified. Stage 3 regression checks verified ACTIVE assignment creation, DGLP/ECHS editing, REMOVED assignment MMF rejection, and malformed/negative MMF HTTP 400 validation. The common-use partial-update behavior and canonical-search route order required targeted corrections found during this run.
+
 ## Business Rules
 
 - Do not silently merge identifier conflicts.
@@ -86,7 +91,7 @@ Stage 3 Ticket 3 runtime verification completed against supported development fi
 
 ## Next Stage
 
-Stage 4 — New Item Proposals + Common-use MMF + Department Submission. Do not implement benchmark prices, RBAC, freeze/release, amendments, or export as part of Ticket 3.
+Next: Stage 5 as defined by the product roadmap. Do not implement benchmark prices, RBAC, freeze/release, amendments, or export without a scoped mission.
 
 ## Do Not Break
 
