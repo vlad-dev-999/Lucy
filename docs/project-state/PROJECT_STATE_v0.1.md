@@ -68,7 +68,7 @@ Stage 3 Ticket 2 runtime verification completed against persisted development da
 
 Stage 3 Ticket 3 runtime verification completed against supported development fixture/bootstrap data: 69 departments were present; a canonical item and ACTIVE/REMOVED assignments were created through the documented APIs; DGLP and ECHS updates each persisted independently and survived reload; the MMF revision record captured the assignment, department, canonical item, prior/new DGLP and ECHS values, user, and timestamp; a REMOVED assignment could not be edited; and a different department could not manipulate the assignment. The actual Department Workspace preview rendered the inline editor correctly, with no browser-console application errors. Negative and malformed MMF payloads are rejected with HTTP 400 and do not reach persistence. API and web typechecks and production builds passed after the validation-response fix.
 
-Stage 4 verification run: `pnpm --filter @workspace/db run push` was attempted and correctly failed before connecting because this environment has no `DATABASE_URL` and no PostgreSQL service configured. The full TypeScript check, API build, and web build passed after correcting the Stage 4 proposal form's typed payload. Schema, API persistence, server-lock runtime, Stage 3 API regression, and browser smoke verification remain blocked until a supported development database is provisioned; no credentials are committed.
+Stage 4 implementation checks: workspace dependency installation and TypeScript/build checks were run. Runtime database verification remains dependent on provisioning `DATABASE_URL` in the Codex Cloud environment; no credentials are committed.
 
 ## Business Rules
 
