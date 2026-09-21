@@ -44,6 +44,7 @@ import {
   departmentItemAssignmentsTable,
   departmentMmfRevisionsTable,
   departmentEntitiesTable,
+  departmentSubmissionsTable,
   legacyCanonicalLineageTable,
   legacyItemDepartmentsTable,
   legacyItemsTable,
@@ -53,6 +54,12 @@ import {
 } from "@workspace/db/schema";
 
 const router: IRouter = Router();
+
+async function isDepartmentSubmitted(departmentId: string) {
+  const [submission] = await db.select({ id: departmentSubmissionsTable.id }).from(departmentSubmissionsTable)
+    .where(eq(departmentSubmissionsTable.departmentId, departmentId)).limit(1);
+  return Boolean(submission);
+}
 
 type LegacyRecordWithDepartments = {
   id: string;
@@ -798,6 +805,10 @@ router.post("/departments/:departmentId/assignments", async (req, res, next) => 
       res.status(404).json({ error: "Department not found" });
       return;
     }
+    if (await isDepartmentSubmitted(params.departmentId)) {
+      res.status(409).json({ error: "Submitted departments cannot be edited" });
+      return;
+    }
     const [canonical] = await db
       .select({ id: canonicalItemsTable.id })
       .from(canonicalItemsTable)
@@ -863,6 +874,10 @@ router.patch(
     try {
       const params = UpdateDepartmentAssignmentParams.parse(req.params);
       const input = UpdateDepartmentAssignmentBody.parse(req.body);
+      if (await isDepartmentSubmitted(params.departmentId)) {
+        res.status(409).json({ error: "Submitted departments cannot be edited" });
+        return;
+      }
       const [existing] = await db
         .select({ id: departmentItemAssignmentsTable.id })
         .from(departmentItemAssignmentsTable)
@@ -902,6 +917,10 @@ router.patch(
         return;
       }
       const input = parsedInput.data;
+      if (await isDepartmentSubmitted(params.departmentId)) {
+        res.status(409).json({ error: "Submitted departments cannot be edited" });
+        return;
+      }
       const hasDglp = Object.prototype.hasOwnProperty.call(req.body ?? {}, "dglpMmf");
       const hasEchs = Object.prototype.hasOwnProperty.call(req.body ?? {}, "echsMmf");
       if (!hasDglp && !hasEchs) {
