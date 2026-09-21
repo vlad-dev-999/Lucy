@@ -139,6 +139,52 @@ export const departmentMmfRevisionsTable = pgTable(
   },
 );
 
+// Common-use quantities are deliberately not stored on department assignments.
+// A hospital quantity is an alternative scope, not another departmental value to sum.
+export const commonUseMmfTable = pgTable(
+  "common_use_mmf",
+  {
+    id: text("id").primaryKey(),
+    canonicalItemId: text("canonical_item_id").notNull().references(() => canonicalItemsTable.id, { onDelete: "restrict" }),
+    currentDglpMmf: doublePrecision("current_dglp_mmf"),
+    currentEchsMmf: doublePrecision("current_echs_mmf"),
+    updatedBy: text("updated_by").notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({ commonUseCanonicalUnique: uniqueIndex("common_use_mmf_canonical_unique").on(table.canonicalItemId) }),
+);
+
+export const itemProposalsTable = pgTable("item_proposals", {
+  id: text("id").primaryKey(),
+  departmentId: text("department_id").notNull().references(() => departmentEntitiesTable.id, { onDelete: "restrict" }),
+  nomenclature: text("nomenclature").notNull(),
+  specification: text("specification").notNull(),
+  unit: text("unit").notNull(),
+  pvms: text("pvms"),
+  niv: text("niv"),
+  proposedDglpMmf: doublePrecision("proposed_dglp_mmf"),
+  proposedEchsMmf: doublePrecision("proposed_echs_mmf"),
+  justification: text("justification").notNull(),
+  proposer: text("proposer").notNull(),
+  status: text("status").notNull().default("PENDING"),
+  reviewer: text("reviewer"),
+  reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const departmentSubmissionsTable = pgTable(
+  "department_submissions",
+  {
+    id: text("id").primaryKey(),
+    departmentId: text("department_id").notNull().references(() => departmentEntitiesTable.id, { onDelete: "restrict" }),
+    status: text("status").notNull().default("SUBMITTED"),
+    submittedBy: text("submitted_by").notNull(),
+    submittedAt: timestamp("submitted_at", { withTimezone: true }).notNull().defaultNow(),
+    assignmentCount: integer("assignment_count").notNull(),
+  },
+  (table) => ({ departmentSubmissionUnique: uniqueIndex("department_submissions_department_unique").on(table.departmentId) }),
+);
+
 export const legacyCanonicalLineageTable = pgTable(
   "legacy_canonical_lineage",
   {
@@ -206,6 +252,9 @@ export type LegacyItemDepartment = typeof legacyItemDepartmentsTable.$inferSelec
 export type CanonicalItem = typeof canonicalItemsTable.$inferSelect;
 export type DepartmentItemAssignment = typeof departmentItemAssignmentsTable.$inferSelect;
 export type DepartmentMmfRevision = typeof departmentMmfRevisionsTable.$inferSelect;
+export type CommonUseMmf = typeof commonUseMmfTable.$inferSelect;
+export type ItemProposal = typeof itemProposalsTable.$inferSelect;
+export type DepartmentSubmission = typeof departmentSubmissionsTable.$inferSelect;
 export type LegacyCanonicalLineage = typeof legacyCanonicalLineageTable.$inferSelect;
 export type VocabularyReview = typeof vocabularyReviewsTable.$inferSelect;
 export type VocabularyReviewCandidate =
