@@ -12,13 +12,7 @@ if (Number.isNaN(port) || port <= 0) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
 }
 
-const basePath = process.env.BASE_PATH;
-
-if (!basePath) {
-  throw new Error(
-    'BASE_PATH environment variable is required but was not provided.',
-  );
-}
+const basePath = process.env.BASE_PATH || '/';
 
 export default defineConfig({
   base: basePath,
@@ -43,12 +37,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(import.meta.dirname, 'src'),
-      '@assets': path.resolve(
-        import.meta.dirname,
-        '..',
-        '..',
-        'attached_assets',
-      ),
+      '@assets': path.resolve(import.meta.dirname, '..', '..', 'attached_assets'),
     },
     dedupe: ['react', 'react-dom'],
   },
@@ -62,9 +51,7 @@ export default defineConfig({
     strictPort: true,
     host: '0.0.0.0',
     allowedHosts: true,
-    fs: {
-      strict: true,
-    },
+    fs: { strict: true },
   },
   preview: {
     port,
